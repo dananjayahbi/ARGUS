@@ -1,0 +1,30 @@
+# Locally-managed Cloudflare Tunnel for ARGUS.
+#
+# Token-managed tunnels configure the same ingress rules in the Cloudflare
+# dashboard instead of this file. Either way the origin services stay bound to
+# 127.0.0.1 and are never exposed directly.
+#
+# Install as /etc/argus/cloudflared/config.yml with mode 600, owned by the
+# cloudflared service account. The credentials file is created by
+# `cloudflared tunnel create argus` and must never be committed.
+
+tunnel: argus
+credentials-file: /etc/argus/cloudflared/credentials.json
+
+ingress:
+  # Read-only asset hostname. Cloudflare terminates TLS at the edge.
+  - hostname: cdn.argus.example.com
+    service: http://127.0.0.1:8080
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+
+  # Dashboard / canvas hostname.
+  - hostname: app.argus.example.com
+    service: http://127.0.0.1:3000
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+
+  # Everything else is rejected at the tunnel.
+  - service: http_status:404

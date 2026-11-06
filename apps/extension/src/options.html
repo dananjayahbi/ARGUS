@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ARGUS settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="card">
+      <p class="eyebrow">ARGUS</p>
+      <h1>Extension settings</h1>
+      <p class="muted">
+        Stored in Chrome's extension storage on this machine. Tokens are never
+        logged or written to source.
+      </p>
+
+      <form id="settings-form">
+        <label>
+          App base URL
+          <input
+            id="appBaseUrl"
+            type="url"
+            required
+            placeholder="http://localhost:3000"
+          />
+        </label>
+
+        <label>
+          CDN base URL
+          <input
+            id="cdnBaseUrl"
+            type="url"
+            required
+            placeholder="http://127.0.0.1:8080"
+          />
+        </label>
+
+        <label>
+          Workspace ingestion token
+          <input
+            id="workspaceToken"
+            type="password"
+            required
+            autocomplete="off"
+          />
+        </label>
+
+        <label>
+          CDN upload token
+          <input
+            id="cdnToken"
+            type="password"
+            required
+            autocomplete="off"
+          />
+        </label>
+
+        <label>
+          Project ID
+          <input
+            id="projectId"
+            type="text"
+            required
+            placeholder="UUID from the ARGUS projects table"
+          />
+        </label>
+
+        <button type="submit">Save settings</button>
+        <p id="status" role="status" class="status"></p>
+      </form>
+    </main>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+#!/usr/sbin/nft -f
+# ARGUS origin firewall. Load with: sudo nft -f deploy/firewall/argus-origin.nft
+#
+# The CDN (8080) and app (3000) bind to 127.0.0.1, so they are intentionally
+# absent from the input chain. Only loopback, established traffic, DNS and SSH
+# are accepted. Cloudflare Tunnel makes outbound connections; no inbound
+# Cloudflare IP ranges are required.
+
+table inet argus_origin {
+  chain input {
+    type filter hook input priority 0; policy drop;
+
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+
+    # DNS for the host resolver.
+    udp dport 53 accept
+    tcp dport 53 accept
+
+    # Administrative access. Restrict to the operator network if possible.
+    tcp dport 22 accept
+
+    # Optional: local reverse proxy. The tunnel does not need inbound 80/443.
+    # tcp dport { 80, 443 } accept
+  }
+
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+  }
+
+  chain output {
+    type filter hook output priority 0; policy accept;
+  }
+}

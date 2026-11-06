@@ -1,0 +1,23 @@
+[Unit]
+Description=ARGUS encrypted database and asset backup
+Documentation=file:///opt/argus/docs/operations/backup-restore.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=argus
+Group=argus
+# chmod 600, owned by root. Contains DATABASE_URL, the encryption key and the
+# off-box BACKUP_DIR. Never commit the real file.
+EnvironmentFile=/etc/argus/backup.env
+WorkingDirectory=/opt/argus
+ExecStart=/usr/bin/node /opt/argus/deploy/backup/backup.mjs
+ExecStartPost=/usr/bin/node /opt/argus/deploy/backup/verify.mjs
+Nice=10
+IOSchedulingClass=best-effort
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/mnt/offbox /opt/argus/apps/cdn/storage
+NoNewPrivileges=true

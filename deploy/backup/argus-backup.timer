@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the ARGUS encrypted backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=argus-backup.service
+
+[Install]
+WantedBy=timers.target

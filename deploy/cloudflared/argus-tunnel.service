@@ -1,0 +1,26 @@
+[Unit]
+Description=ARGUS Cloudflare Tunnel
+Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cloudflared
+Group=cloudflared
+# Contains TUNNEL_TOKEN only. chmod 600, owned by root, never committed.
+EnvironmentFile=/etc/argus/cloudflared.env
+# The token is passed through the environment so no credential file is
+# required on disk for a token-managed tunnel.
+ExecStart=/bin/sh -c 'exec /usr/bin/cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"'
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/argus
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

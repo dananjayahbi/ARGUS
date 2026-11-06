@@ -1,0 +1,19 @@
+{
+  "name": "argus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ARGUS QA capture and bug tracking ecosystem",
+  "scripts": {
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "web:start": "npm --prefix apps/web run start",
+    "web:typecheck": "npm --prefix apps/web run typecheck",
+    "db:migrate": "npm --prefix apps/web run db:migrate",
+    "db:migrate:down": "npm --prefix apps/web run db:migrate:down",
+    "db:seed": "npm --prefix apps/web run db:seed",
+    "db:verify": "npm --prefix apps/web run db:verify",
+    "ext:build": "npm --prefix apps/extension run build",
+    "ext:check": "npm --prefix apps/extension run check",
+    "backup:test": "node --test deploy/backup/*.test.mjs"
+  }
+}

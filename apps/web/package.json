@@ -1,0 +1,53 @@
+{
+  "name": "@argus/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "check:client-secrets": "node scripts/check-client-secrets.mjs",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "test:ci": "vitest run && vitest run --config vitest.integration.config.mts",
+    "test:e2e": "node scripts/e2e-workflow-a.mjs",
+    "test:e2e:reconsider": "node scripts/e2e-workflow-b.mjs",
+    "test:perf": "node scripts/perf-capture-to-ticket.mjs",
+    "db:migrate": "node scripts/migrate.mjs up",
+    "db:migrate:down": "node scripts/migrate.mjs down 1",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:verify": "tsx scripts/verify-schema.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "@sentry/nextjs": "^11.11.0",
+    "jose": "^6.2.15",
+    "konva": "^10.9.1",
+    "next": "16.4.5",
+    "pg": "^8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-konva": "^19.3.2",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^10.14.0",
+    "eslint-config-next": "^16.4.5",
+    "node-pg-migrate": "^9.0.0",
+    "tailwindcss": "^4.3.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}

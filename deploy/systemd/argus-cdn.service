@@ -1,0 +1,25 @@
+[Unit]
+Description=ARGUS CDN daemon
+Documentation=file:///opt/argus/docs/operations/runbook.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=argus
+Group=argus
+WorkingDirectory=/opt/argus/apps/cdn
+# Contains CDN_AUTH_TOKEN, STORAGE_ROOT, SENTRY_* and limits. Mode 600.
+EnvironmentFile=/etc/argus/cdn.env
+ExecStart=/opt/argus/apps/cdn/.venv/bin/python -m argus_cdn
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/argus/apps/cdn/storage
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
