@@ -20,14 +20,11 @@ function fallbackEnvironment(message) {
     return environment;
   }
 
+  // Avoid inventing zero-sized viewport/screen values: the web schema rejects
+  // non-positive dimensions, which turned telemetry-less reports into an
+  // "Invalid draft payload" error.
   return {
-    url: "",
     title: "",
-    viewport: { width: 0, height: 0 },
-    screen: { width: 0, height: 0 },
-    device_pixel_ratio: 1,
-    user_agent: "",
-    os: "Unknown",
   };
 }
 
@@ -79,6 +76,7 @@ export function createMessageHandler({
 
         return dispatchCapture({
           capture: message.capture,
+          captures: message.captures,
           settings,
           fetchImpl,
           createTab,

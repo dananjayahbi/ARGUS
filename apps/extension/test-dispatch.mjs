@@ -118,6 +118,38 @@ async function testSuccess() {
   assert.equal(payload.console_logs.length, 1);
 }
 
+async function testMissingSnapshotProducesValidEnvironment() {
+  const { fetchImpl, calls } = makeFetch();
+  const captureWithoutSnapshot = {
+    ...capture,
+    snapshot: null,
+    pageTitle: "No telemetry",
+  };
+
+  const result = await dispatchCapture({
+    capture: captureWithoutSnapshot,
+    settings,
+    fetchImpl,
+    createTab: async () => undefined,
+  });
+
+  assert.equal(result.ok, true);
+  const ingestCall = calls.find((call) =>
+    call.url.endsWith("/api/ingest/draft"),
+  );
+  const payload = JSON.parse(ingestCall.init.body);
+  const environment = payload.environment_info;
+
+  assert.equal(environment.url, "https://example.com");
+  assert.equal(environment.title, "No telemetry");
+  assert.deepEqual(environment.viewport, { width: 100, height: 100 });
+  assert.equal(environment.device_pixel_ratio, 1);
+  assert.equal(environment.screen, undefined);
+  assert.equal(payload.console_logs.length, 0);
+  assert.equal(environment.captured_pages[0].url, "https://example.com");
+  assert.equal(environment.captured_pages[0].asset_url, "http://cdn.test/raw/x.png");
+}
+
 async function testCdnFailure() {
   const { fetchImpl, calls } = makeFetch({
     upload: jsonResponse(
@@ -235,6 +267,7 @@ async function testMultipleCaptures() {
 
 await testSuccess();
 await testMultipleCaptures();
+await testMissingSnapshotProducesValidEnvironment();
 await testCdnFailure();
 await testIngestFailure();
 console.log("Dispatch flow tests passed.");

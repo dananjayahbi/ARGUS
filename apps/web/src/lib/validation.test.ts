@@ -32,6 +32,59 @@ describe("ingestDraftSchema", () => {
     expect(ingestDraftSchema.safeParse(basePayload).success).toBe(true);
   });
 
+  it("accepts telemetry-free payloads without inventing screen dimensions", () => {
+    expect(
+      ingestDraftSchema.safeParse({
+        ...basePayload,
+        environment_info: {
+          url: "https://target.example",
+          title: "Target",
+          viewport: { width: 1280, height: 720 },
+          device_pixel_ratio: 1,
+          os: "Unknown",
+        },
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects zero-sized screen dimensions", () => {
+    expect(
+      ingestDraftSchema.safeParse({
+        ...basePayload,
+        environment_info: {
+          ...basePayload.environment_info,
+          screen: { width: 0, height: 0 },
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts extra screenshots and captured page telemetry", () => {
+    expect(
+      ingestDraftSchema.safeParse({
+        ...basePayload,
+        environment_info: {
+          ...basePayload.environment_info,
+          captured_pages: [
+            {
+              url: "https://target.example",
+              title: "Target",
+              captured_at: "2026-11-06T00:00:00.000Z",
+              asset_url: "https://cdn.example/raw/2026/11/shot.png",
+              kind: "primary",
+            },
+          ],
+        },
+        supplementary_assets: [
+          {
+            url: "https://cdn.example/raw/2026/11/second.png",
+            asset_type: "image/png",
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
   it("requires raw_image_url for screenshot and full_page", () => {
     const withoutImage = { ...basePayload, raw_image_url: undefined };
 

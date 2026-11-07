@@ -97,10 +97,15 @@ async function testSnapshot() {
 async function testDispatch() {
   const { handler, calls } = makeHandler();
   const capture = { dataUrl: "data:image/png;base64,AAAA" };
-  const result = await handler({ type: "ARGUS_DISPATCH", capture }, sender);
+  const captures = [capture, { dataUrl: "data:image/png;base64,BBBB" }];
+  const result = await handler(
+    { type: "ARGUS_DISPATCH", capture, captures },
+    sender,
+  );
   assert.equal(result.ok, true);
   assert.equal(calls.dispatch.length, 1);
   assert.equal(calls.dispatch[0].capture, capture);
+  assert.equal(calls.dispatch[0].captures, captures);
   assert.deepEqual(calls.dispatch[0].settings, settings);
   assert.equal(typeof calls.dispatch[0].createTab, "function");
   assert.equal(typeof calls.dispatch[0].fetchImpl, "function");
@@ -160,6 +165,21 @@ async function testTextReportFallsBackToEnvironment() {
   assert.deepEqual(calls.textReport[0].logs, []);
 }
 
+async function testTextReportFallbackHasNoInvalidDimensions() {
+  const { handler, calls } = makeHandler({ getSnapshot: async () => null });
+  const result = await handler(
+    { type: "ARGUS_TEXT_REPORT", title: "Broken", priority: 40 },
+    sender,
+  );
+
+  assert.equal(result.ok, true);
+  const environment = calls.textReport[0].environment;
+  assert.equal(environment.title, "");
+  assert.equal(environment.viewport, undefined);
+  assert.equal(environment.screen, undefined);
+  assert.equal(environment.url, undefined);
+}
+
 async function testUnknown() {
   const { handler } = makeHandler();
   const result = await handler({ type: "ARGUS_NOPE" }, sender);
@@ -174,5 +194,6 @@ await testDispatch();
 await testDispatchUnconfigured();
 await testTextReportUsesSnapshot();
 await testTextReportFallsBackToEnvironment();
+await testTextReportFallbackHasNoInvalidDimensions();
 await testUnknown();
 console.log("Background message handler tests passed.");

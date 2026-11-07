@@ -151,14 +151,28 @@ export async function dispatchCapture({
   const ingestBody = await ingestResponse.json().catch(() => ({}));
 
   if (!ingestResponse.ok || !ingestBody.editor_url) {
+    const reason = String(
+      ingestBody.error?.message ??
+        ingestBody.detail ??
+        `HTTP ${ingestResponse.status}`,
+    ).replace(/[.\s]+$/, "");
+    const details = Array.isArray(ingestBody.error?.details)
+      ? ingestBody.error.details
+          .map((item) =>
+            item?.path
+              ? `${item.path}: ${item.message ?? "invalid"}`
+              : item?.message,
+          )
+          .filter(Boolean)
+          .join("; ")
+      : "";
+
     return {
       ok: false,
       step: 1,
       uploadUrl: uploads[0].url,
-      error: `Draft creation failed: ${
-        ingestBody.error?.message ??
-        ingestBody.detail ??
-        ingestResponse.status
+      error: `Draft creation failed: ${reason}${
+        details ? ` (${details})` : ""
       }. The raw ${list.length > 1 ? "images were" : "image was"} uploaded to ${
         uploads[0].url
       } but ${list.length > 1 ? "are" : "is"} orphaned; retry will upload ${

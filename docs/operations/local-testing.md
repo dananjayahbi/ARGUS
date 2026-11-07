@@ -251,6 +251,8 @@ use 13130/18130 — they're fully isolated.
 | `Cannot find module` / port in use | Another service owns 13130/18130. `Get-NetTCPConnection -LocalPort 13130,18130` to see who. Stop it or change `-WebPort`/`-CdnPort`. |
 | Login redirects to `/login` | Wrong password, or `DATABASE_URL` unreachable (remote PG). Re-run `npm run db:migrate` + `npm run db:seed`. |
 | Canvas says "Draft link expired" | Tokens live 30 min. Re-capture to get a fresh one. |
+| Extension says "Invalid draft payload" | Usually telemetry harvesting failed and an older build sent `0×0` viewport/screen dimensions. Rebuild and reload the extension; the current build omits unknown dimensions and the API response names the failing field. |
+| Extension still shows only one screenshot | Rebuild (`npm run ext:build`) and reload the unpacked extension, then refresh the page. Use **Add to issue** to stage more captures before **Use N screenshots**. |
 | `next dev` is very slow | Use production: `npm run build` then `start-local.ps1 -Prod`. |
 | Nothing listens | Read `$env:TEMP\argus-local\*.log` — startup errors are there. |
 
