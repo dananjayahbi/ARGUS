@@ -127,6 +127,12 @@ function createEnvironment({ chrome } = {}) {
   }
   window.document = document;
   window.location = context.location;
+  window.screen = context.screen;
+  window.innerWidth = 1280;
+  window.innerHeight = 800;
+  window.devicePixelRatio = 1;
+  window.setTimeout = setTimeout;
+  window.requestAnimationFrame = context.requestAnimationFrame;
 
   const sandbox = vm.createContext(context);
   vm.runInContext(source, sandbox, { filename: "content/overlay.js" });
@@ -218,6 +224,117 @@ function assertOverlayInstalled(environment) {
 
   overlay.destroy();
   assert.equal(calls.removed, 1);
+}
+
+// 5. After a successful screenshot report the overlay clears itself and is
+// ready for the next issue (no stale captures, steps or dispatch message).
+{
+  const settings = {
+    appBaseUrl: "http://app.test",
+    cdnBaseUrl: "http://cdn.test",
+    workspaceToken: "workspace",
+    cdnToken: "cdn",
+    projectId: "11111111-1111-4111-8111-111111111111",
+  };
+  const staged = [
+    {
+      dataUrl: "data:image/png;base64,AAAA",
+      pageUrl: "https://a.test",
+      pageTitle: "A",
+      mode: "area",
+      capturedAt: "2026-11-07T10:00:00.000Z",
+    },
+  ];
+  const chrome = {
+    runtime: {
+      id: "abcdefghijklmnop",
+      sendMessage: async (message) =>
+        message.type === "ARGUS_DISPATCH"
+          ? {
+              ok: true,
+              step: 2,
+              editorUrl: "http://app.test/canvas/x",
+              captureCount: 1,
+            }
+          : { ok: true },
+      onMessage: { addListener() {}, removeListener() {} },
+    },
+    storage: {
+      local: { get: async () => ({ "argus.settings.v1": settings }) },
+      session: {
+        get: async () => ({ "argus.stagedCaptures": staged }),
+        set: async () => {},
+      },
+    },
+  };
+
+  const environment = createEnvironment({ chrome });
+  await flush();
+  environment.query("#argus-popup").hidden = true;
+  environment.window.__ARGUS_OVERLAY__.toggle();
+  await flush();
+
+  assert.equal(environment.query("#argus-staged-count").textContent, "1");
+  environment.query("#argus-create-staged").click();
+  await flush();
+  await flush();
+
+  assert.equal(environment.query("#argus-staged-count").textContent, "0");
+  assert.match(
+    environment.query("#argus-status").textContent,
+    /Ready for the next report/i,
+  );
+  assert.equal(environment.query("#argus-dispatch").hidden, true);
+  assert.equal(environment.query("#argus-dispatch").textContent, "");
+  assert.equal(environment.query("#argus-steps").hidden, true);
+  assert.equal(environment.query("#argus-add-more").disabled, false);
+}
+
+// 6. Text-only reports clear the form and status the same way.
+{
+  const settings = {
+    appBaseUrl: "http://app.test",
+    cdnBaseUrl: "http://cdn.test",
+    workspaceToken: "workspace",
+    cdnToken: "cdn",
+    projectId: "11111111-1111-4111-8111-111111111111",
+  };
+  const chrome = {
+    runtime: {
+      id: "abcdefghijklmnop",
+      sendMessage: async () => ({
+        ok: true,
+        issueId: "issue",
+        redirectUrl: "http://app.test/projects/ARG?issue=issue",
+      }),
+      onMessage: { addListener() {}, removeListener() {} },
+    },
+    storage: {
+      local: { get: async () => ({ "argus.settings.v1": settings }) },
+      session: { get: async () => ({}), set: async () => {} },
+    },
+  };
+
+  const environment = createEnvironment({ chrome });
+  await flush();
+  environment.query("#argus-popup").hidden = true;
+  environment.window.__ARGUS_OVERLAY__.toggle();
+  await flush();
+
+  environment.query("#argus-text").click();
+  const title = environment.query("#argus-text-title");
+  title.value = "Text-only bug";
+  environment.query("#argus-text-submit").click();
+  await flush();
+  await flush();
+
+  assert.equal(title.value, "");
+  assert.equal(environment.query("#argus-text-form").hidden, true);
+  assert.equal(environment.query("#argus-text-status").textContent, "");
+  assert.match(
+    environment.query("#argus-status").textContent,
+    /Ready for the next report/i,
+  );
 }
 
 console.log("Overlay runtime-guard regression tests passed.");

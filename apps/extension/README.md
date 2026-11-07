@@ -76,6 +76,8 @@ The overlay is fully wired:
   before creating the issue. **Discard capture** drops only the current
   preview with no network calls; **+ Add another screenshot** in the captures
   list stages the current preview and immediately starts another area snip.
+  After a report is created the popup clears its captures, preview, text form,
+  steps and status messages, so it is immediately ready for the next issue.
 - Diagnostics harvester injected into the active tab: URL, title, viewport,
   screen, DPR, OS, browser/engine and an ISO-8601 timestamp, plus a rolling
   50-entry buffer of console errors, warnings, unhandled rejections and

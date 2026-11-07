@@ -229,7 +229,9 @@ Then on any http(s) page: click the floating **A** (or the toolbar icon) →
 **Harvest now** → **Area snip** → **Add to issue**. Repeat the capture for as
 many screenshots as the issue needs, then choose **Use N screenshots** →
 select an image in the canvas **Attached images** panel → annotate → Submit →
-card appears on the board.
+card appears on the board. After the draft is created the extension popup
+clears itself (captures, preview, steps and messages) and is ready for the next
+report; the same reset applies after a text-only report.
 
 ## 6. Automated gates (great for regression)
 

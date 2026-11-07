@@ -779,6 +779,33 @@
     renderStagedCaptures();
   }
 
+  /**
+   * Reset every input and status after a report is created so the overlay is
+   * immediately ready for the next issue instead of keeping the previous
+   * captures, steps and success message on screen.
+   */
+  function resetForNextIssue(message) {
+    stagedCaptures = [];
+    void persistStagedCaptures();
+    lastCapture = null;
+    textForm.hidden = true;
+    textTitle.value = "";
+    textDescription.value = "";
+    textPriority.value = "50";
+    updatePriorityLabel();
+    setTextStatus("");
+    setDispatchStatus("");
+    steps.hidden = true;
+    steps.replaceChildren();
+    diagnostics.hidden = true;
+    diagnostics.replaceChildren();
+    clearPreview();
+    renderStagedCaptures();
+    if (message) {
+      setStatus(message, "ok");
+    }
+  }
+
   async function captureAnother() {
     if (busy) {
       return;
@@ -1047,18 +1074,10 @@
         return;
       }
 
-      stagedCaptures = [];
-      await persistStagedCaptures();
-      renderStagedCaptures();
-      clearPreview(
+      resetForNextIssue(
         `Issue created with ${captures.length} screenshot${
           captures.length === 1 ? "" : "s"
-        }.`,
-      );
-      renderSteps(3);
-      setDispatchStatus(
-        "Draft created. The canvas editor is opening in a new tab.",
-        "ok",
+        }. Ready for the next report.`,
       );
     } finally {
       busy = false;
@@ -1111,16 +1130,9 @@
         return;
       }
 
-      setTextStatus("Text-only issue submitted to Pending.", "ok");
-      const link = document.createElement("a");
-      link.href = result.redirectUrl;
-      link.className = "argus-link";
-      link.textContent = "Open on the Kanban board";
-      textStatus.append(" ", link);
-      textTitle.value = "";
-      textDescription.value = "";
-      textPriority.value = "50";
-      updatePriorityLabel();
+      resetForNextIssue(
+        "Text-only issue submitted to Pending. Ready for the next report.",
+      );
     } finally {
       textSubmit.disabled = false;
     }
