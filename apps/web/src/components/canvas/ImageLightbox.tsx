@@ -17,6 +17,12 @@ interface Point {
   y: number;
 }
 
+export interface LightboxImage {
+  src: string;
+  alt: string;
+  title?: string;
+}
+
 function clampZoom(scale: number) {
   return clampScale(scale, MIN_SCALE, MAX_SCALE);
 }
@@ -28,16 +34,22 @@ function clampZoom(scale: number) {
  * - Hold Space and drag (or drag with the middle mouse button) to pan.
  * - Double-click zooms in; Shift+double-click zooms out.
  * - Escape closes the preview.
+ * - Pass `images` to browse an ordered gallery with the arrow keys or the
+ *   previous/next buttons without closing the preview.
  */
 export function ImageLightbox({
   src,
   alt,
   title,
+  images,
+  initialIndex = 0,
   onClose,
 }: {
-  src: string;
-  alt: string;
+  src?: string;
+  alt?: string;
   title?: string;
+  images?: LightboxImage[];
+  initialIndex?: number;
   onClose: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,6 +58,20 @@ export function ImageLightbox({
     pointer: Point;
     transform: ViewportTransform;
   } | null>(null);
+
+  const gallery: LightboxImage[] =
+    images && images.length > 0
+      ? images
+      : src
+        ? [{ src, alt: alt ?? "", title }]
+        : [];
+  const count = gallery.length;
+  const canNavigate = count > 1;
+
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const safeIndex =
+    count === 0 ? 0 : Math.min(Math.max(activeIndex, 0), count - 1);
+  const active = gallery[safeIndex];
 
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [natural, setNatural] = useState<{ width: number; height: number } | null>(
@@ -58,6 +84,21 @@ export function ImageLightbox({
   });
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+
+  const imageVisible = Boolean(natural) && loadedSrc === active?.src;
+
+  const step = useCallback(
+    (delta: number) => {
+      if (count < 2) {
+        return;
+      }
+      dragRef.current = null;
+      setDragging(false);
+      setActiveIndex((current) => (((current + delta) % count) + count) % count);
+    },
+    [count],
+  );
 
   const fitToViewport = useCallback(() => {
     if (!natural || size.width <= 0 || size.height <= 0) {
@@ -121,6 +162,16 @@ export function ImageLightbox({
         onClose();
         return;
       }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        step(-1);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        step(1);
+        return;
+      }
       if (event.code === "Space" && !isEditable(event.target)) {
         event.preventDefault();
         setSpaceHeld(true);
@@ -141,7 +192,7 @@ export function ImageLightbox({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [onClose]);
+  }, [onClose, step]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -253,7 +304,11 @@ export function ImageLightbox({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={title ? `Preview: ${title}` : `Preview: ${alt}`}
+      aria-label={
+        active?.title
+          ? `Preview: ${active.title}`
+          : `Preview: ${active?.alt ?? "image"}`
+      }
       className="fixed inset-0 z-[60] flex flex-col bg-slate-950/98"
     >
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-800 px-6 py-3">
@@ -261,10 +316,36 @@ export function ImageLightbox({
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400">
             Image preview
           </p>
-          <p className="truncate text-sm text-slate-300">{title ?? alt}</p>
+          <p className="truncate text-sm text-slate-300">
+            {active?.title ?? active?.alt ?? "Image"}
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {canNavigate ? (
+            <div className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 p-1">
+              <button
+                type="button"
+                onClick={() => step(-1)}
+                aria-label="Previous image"
+                className="h-8 w-8 rounded text-lg leading-none text-slate-300 transition hover:bg-slate-800"
+              >
+                ‹
+              </button>
+              <span className="w-14 text-center text-xs tabular-nums text-slate-400">
+                {safeIndex + 1} / {count}
+              </span>
+              <button
+                type="button"
+                onClick={() => step(1)}
+                aria-label="Next image"
+                className="h-8 w-8 rounded text-lg leading-none text-slate-300 transition hover:bg-slate-800"
+              >
+                ›
+              </button>
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 p-1">
             <button
               type="button"
@@ -311,10 +392,32 @@ export function ImageLightbox({
         className="relative min-h-0 flex-1 overflow-hidden select-none"
         style={{ cursor }}
       >
+        {canNavigate ? (
+          <>
+            <button
+              type="button"
+              onClick={() => step(-1)}
+              aria-label="Previous image"
+              className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-2 text-2xl leading-none text-slate-200 transition hover:bg-slate-800"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => step(1)}
+              aria-label="Next image"
+              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-2 text-2xl leading-none text-slate-200 transition hover:bg-slate-800"
+            >
+              ›
+            </button>
+          </>
+        ) : null}
+
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={src}
-          alt={alt}
+          key={active?.src}
+          src={active?.src}
+          alt={active?.alt ?? ""}
           draggable={false}
           onLoad={(event) => {
             const image = event.currentTarget;
@@ -324,6 +427,7 @@ export function ImageLightbox({
             };
             naturalRef.current = next;
             setNatural(next);
+            setLoadedSrc(active?.src ?? null);
 
             const element = containerRef.current;
             if (element && next.width > 0 && next.height > 0) {
@@ -341,7 +445,7 @@ export function ImageLightbox({
           style={{
             transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
             transformOrigin: "0 0",
-            visibility: natural ? "visible" : "hidden",
+            visibility: imageVisible ? "visible" : "hidden",
           }}
         />
       </div>
@@ -349,6 +453,13 @@ export function ImageLightbox({
       <footer className="shrink-0 border-t border-slate-800 px-6 py-2 text-center text-xs text-slate-500">
         Scroll to zoom · Hold <kbd className="rounded bg-slate-800 px-1">Space</kbd>{" "}
         and drag to pan · Double-click to zoom · Esc to close
+        {canNavigate ? (
+          <>
+            {" "}
+            · Use <kbd className="rounded bg-slate-800 px-1">←</kbd>{" "}
+            <kbd className="rounded bg-slate-800 px-1">→</kbd> to switch images
+          </>
+        ) : null}
       </footer>
     </div>
   );

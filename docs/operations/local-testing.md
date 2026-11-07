@@ -149,7 +149,10 @@ Open the browser:
    switcher if it isn't auto-selected.
 3. **Kanban** shows 5 columns: Draft, Pending, Working, Reconsider, Completed.
    - Drag a card between columns (except to Reconsider — see step 5).
-   - Click **Details** on any card to open the issue modal.
+   - Click **Details** on any card to open the issue modal. Every attached
+     screenshot (raw, supplementary and annotated) appears in a gallery; click
+     any tile to open the full-screen preview and use **← / →** (or the
+     previous/next buttons) to browse the gallery without closing it.
 4. **Create a capture the programmatic way** (no extension needed):
 
 ```powershell

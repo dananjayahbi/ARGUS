@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -8,6 +8,7 @@ import { ImageLightbox } from "@/components/canvas/ImageLightbox";
 import { DiagnosticsDrawer } from "@/components/canvas/DiagnosticsDrawer";
 import type { BoardIssue } from "@/lib/board-types";
 import { parseCapturedPages } from "@/lib/captured-pages";
+import { buildIssueGallery } from "@/lib/issue-gallery";
 import { priorityTier } from "@/lib/priority";
 
 import { IssueFormModal } from "./IssueFormModal";
@@ -52,12 +53,6 @@ interface DetailPayload {
   supplementary_assets: SupplementaryAsset[];
 }
 
-interface PreviewImage {
-  src: string;
-  alt: string;
-  title: string;
-}
-
 export function IssueDetailModal({
   issueId,
   onClose,
@@ -71,12 +66,11 @@ export function IssueDetailModal({
 }) {
   const [data, setData] = useState<DetailPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [imageMode, setImageMode] = useState<"raw" | "annotated">("annotated");
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<PreviewImage | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,25 +108,51 @@ export function IssueDetailModal({
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape" && !preview) {
+      if (event.key === "Escape" && previewIndex === null) {
         onClose();
       }
     }
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, preview]);
+  }, [onClose, previewIndex]);
 
   const issue = data?.issue;
   const tier = issue ? priorityTier(issue.priority) : null;
-  const hasImage = Boolean(issue?.raw_image_url || issue?.annotated_image_url);
   const isTextOnly = issue?.report_type === "text_only";
-  const activeImageUrl =
-    imageMode === "annotated"
-      ? issue?.annotated_image_url ?? issue?.raw_image_url ?? null
-      : issue?.raw_image_url ?? issue?.annotated_image_url ?? null;
   const capturedPages = parseCapturedPages(issue?.environment_info);
   const projectKey = data?.project.key ?? "";
+
+  const imageAssets = useMemo(
+    () =>
+      (data?.supplementary_assets ?? []).filter((asset) =>
+        asset.asset_type.startsWith("image/"),
+      ),
+    [data?.supplementary_assets],
+  );
+  const fileAssets = useMemo(
+    () =>
+      (data?.supplementary_assets ?? []).filter(
+        (asset) => !asset.asset_type.startsWith("image/"),
+      ),
+    [data?.supplementary_assets],
+  );
+
+  const gallery = useMemo(() => {
+    if (!issue) {
+      return [];
+    }
+
+    return buildIssueGallery({
+      issueNumber: issue.issue_number,
+      rawImageUrl: issue.raw_image_url,
+      annotatedImageUrl: issue.annotated_image_url,
+      environmentInfo: issue.environment_info,
+      supplementaryAssets: imageAssets.map((asset) => ({
+        url: asset.asset_url,
+      })),
+    });
+  }, [issue, imageAssets]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
@@ -287,70 +307,44 @@ export function IssueDetailModal({
                 </p>
               ) : (
                 <>
-                  {hasImage ? (
+                  {gallery.length ? (
                     <section className="space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-                          Screenshot
+                          Screenshots ({gallery.length})
                         </h3>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setImageMode("raw")}
-                            aria-pressed={imageMode === "raw"}
-                            disabled={!issue.raw_image_url}
-                            className={`rounded px-2 py-1 text-xs transition disabled:opacity-40 ${
-                              imageMode === "raw"
-                                ? "bg-slate-800 text-slate-100"
-                                : "text-slate-500 hover:text-slate-300"
-                            }`}
-                          >
-                            Raw
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setImageMode("annotated")}
-                            aria-pressed={imageMode === "annotated"}
-                            disabled={!issue.annotated_image_url}
-                            className={`rounded px-2 py-1 text-xs transition disabled:opacity-40 ${
-                              imageMode === "annotated"
-                                ? "bg-slate-800 text-slate-100"
-                                : "text-slate-500 hover:text-slate-300"
-                            }`}
-                          >
-                            Annotated
-                          </button>
-                        </div>
+                        <span className="text-[11px] text-slate-500">
+                          Click a screenshot to open the gallery · use ← / → to
+                          change images
+                        </span>
                       </div>
-
-                      {activeImageUrl ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPreview({
-                              src: activeImageUrl,
-                              alt: `${imageMode} capture for issue ${issue.issue_number}`,
-                              title: `${projectKey}-${issue.issue_number} · ${imageMode} capture`,
-                            })
-                          }
-                          className="group block w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950 transition hover:border-cyan-500/50"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={activeImageUrl}
-                            alt={`${imageMode} capture for issue ${issue.issue_number}`}
-                            className="max-h-[60vh] w-full object-contain"
-                          />
-                          <span className="block border-t border-slate-800 px-3 py-1.5 text-[11px] text-slate-500 transition group-hover:text-cyan-300">
-                            Click to open the full viewport preview (zoom and
-                            pan)
-                          </span>
-                        </button>
-                      ) : (
-                        <p className="text-sm text-slate-500">
-                          No {imageMode} image is available.
-                        </p>
-                      )}
+                      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {gallery.map((image, index) => (
+                          <li key={image.src}>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewIndex(index)}
+                              className="group block w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950 text-left transition hover:border-cyan-500/50"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={image.src}
+                                alt={image.alt}
+                                loading="lazy"
+                                className="h-40 w-full bg-slate-950 object-cover object-top"
+                              />
+                              <span className="flex items-center justify-between gap-2 border-t border-slate-800 px-3 py-1.5">
+                                <span className="truncate text-[11px] text-slate-400 transition group-hover:text-cyan-300">
+                                  {image.label}
+                                </span>
+                                <span className="shrink-0 text-[10px] tabular-nums text-slate-600">
+                                  {index + 1} / {gallery.length}
+                                </span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
                     </section>
                   ) : (
                     <p className="rounded-lg border border-dashed border-slate-800 p-4 text-sm text-slate-500">
@@ -385,60 +379,30 @@ export function IssueDetailModal({
                 />
               </section>
 
-              {data?.supplementary_assets.length ? (
+              {fileAssets.length ? (
                 <section className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-                    Supplementary assets
+                    Supplementary files
                   </h3>
                   <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {data.supplementary_assets.map((asset) => {
-                      const isImage = asset.asset_type.startsWith("image/");
-                      return (
-                        <li
-                          key={asset.id}
-                          className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60"
+                    {fileAssets.map((asset) => (
+                      <li
+                        key={asset.id}
+                        className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60 p-2"
+                      >
+                        <a
+                          href={asset.asset_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block break-all text-xs text-cyan-300 underline"
                         >
-                          {isImage ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreview({
-                                  src: asset.asset_url,
-                                  alt: "Supplementary asset",
-                                  title:
-                                    asset.asset_url.split("/").pop() ??
-                                    "Supplementary asset",
-                                })
-                              }
-                              className="group block w-full"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={asset.asset_url}
-                                alt="Supplementary asset"
-                                className="max-h-48 w-full object-contain"
-                              />
-                              <span className="block border-t border-slate-800 px-2 py-1 text-[11px] text-slate-500 transition group-hover:text-cyan-300">
-                                Click to preview
-                              </span>
-                            </button>
-                          ) : null}
-                          <div className="space-y-1 p-2">
-                            <a
-                              href={asset.asset_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block text-xs text-cyan-300 underline"
-                            >
-                              {asset.asset_url.split("/").pop()}
-                            </a>
-                            <span className="text-[11px] text-slate-500">
-                              {asset.asset_type}
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
+                          {asset.asset_url.split("/").pop()}
+                        </a>
+                        <span className="text-[11px] text-slate-500">
+                          {asset.asset_type}
+                        </span>
+                      </li>
+                    ))}
                   </ul>
                 </section>
               ) : null}
@@ -583,12 +547,11 @@ export function IssueDetailModal({
         />
       ) : null}
 
-      {preview ? (
+      {previewIndex !== null && gallery.length ? (
         <ImageLightbox
-          src={preview.src}
-          alt={preview.alt}
-          title={preview.title}
-          onClose={() => setPreview(null)}
+          images={gallery}
+          initialIndex={previewIndex}
+          onClose={() => setPreviewIndex(null)}
         />
       ) : null}
     </div>
