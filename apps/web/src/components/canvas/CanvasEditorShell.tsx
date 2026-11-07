@@ -58,6 +58,23 @@ function initialCanvasState(issue: CanvasDraftData) {
   };
 }
 
+/**
+ * Close the canvas tab after submit/delete.
+ *
+ * `window.close()` only works for tabs that the page itself opened, so the
+ * ARGUS extension content script also listens for this postMessage and closes
+ * the tab through chrome.tabs.remove. Both paths are attempted; if a browser
+ * blocks them the success screens still expose a Close tab button.
+ */
+function requestCanvasClose() {
+  try {
+    window.postMessage({ type: "ARGUS_CLOSE_CANVAS" }, window.location.origin);
+  } catch {
+    // Fall through to window.close().
+  }
+  window.close();
+}
+
 export function CanvasEditorShell({
   issue,
   token,
@@ -107,6 +124,10 @@ export function CanvasEditorShell({
   const [submissionResult, setSubmissionResult] = useState<{
     redirectUrl: string;
   } | null>(null);
+  const [confirmDeleteDraft, setConfirmDeleteDraft] = useState(false);
+  const [deletingDraft, setDeletingDraft] = useState(false);
+  const [deleteDraftError, setDeleteDraftError] = useState<string | null>(null);
+  const [draftDeleted, setDraftDeleted] = useState(false);
   const [title, setTitle] = useState(
     issue.title && issue.title !== "Untitled draft" ? issue.title : "",
   );
@@ -619,6 +640,52 @@ export function CanvasEditorShell({
     uploadFile,
   ]);
 
+  useEffect(() => {
+    if (!submissionResult && !draftDeleted) {
+      return;
+    }
+    // The canvas is opened in its own tab by the extension or dashboard. Close
+    // it after the success screen paints; the screen also offers a manual
+    // Close tab button for browsers that block window.close().
+    const timer = window.setTimeout(() => {
+      requestCanvasClose();
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [draftDeleted, submissionResult]);
+
+  const handleDeleteDraft = useCallback(async () => {
+    if (deletingDraft) {
+      return;
+    }
+
+    setDeletingDraft(true);
+    setDeleteDraftError(null);
+
+    try {
+      const response = await fetch(
+        `/api/issues/${issue.id}?token=${encodeURIComponent(token)}`,
+        { method: "DELETE" },
+      );
+      const body = (await response.json().catch(() => null)) as {
+        error?: { message?: string };
+      } | null;
+
+      if (!response.ok) {
+        setDeleteDraftError(
+          body?.error?.message ?? "Unable to delete the draft.",
+        );
+        return;
+      }
+
+      setConfirmDeleteDraft(false);
+      setDraftDeleted(true);
+    } catch {
+      setDeleteDraftError("Unable to reach the server.");
+    } finally {
+      setDeletingDraft(false);
+    }
+  }, [deletingDraft, issue.id, token]);
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-3">
@@ -634,6 +701,16 @@ export function CanvasEditorShell({
           <span className="text-xs text-slate-500">
             Tool: <span className="text-slate-300">{effectiveTool}</span>
           </span>
+          <button
+            type="button"
+            onClick={() => {
+              setConfirmDeleteDraft(true);
+              setDeleteDraftError(null);
+            }}
+            className="rounded-md border border-rose-500/40 px-2 py-1 text-xs font-medium text-rose-200 transition hover:bg-rose-500/10"
+          >
+            Delete draft
+          </button>
           <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300">
             Draft
           </span>
@@ -894,6 +971,77 @@ export function CanvasEditorShell({
         </div>
       ) : null}
 
+      {confirmDeleteDraft ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-rose-400">
+                Delete draft
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-50">
+                Delete {issue.project_key}-{issue.issue_number}?
+              </h2>
+            </div>
+            <p className="text-sm leading-6 text-slate-400">
+              The draft, its uploaded raw captures and any annotations will be
+              removed. This cannot be undone.
+            </p>
+            {deleteDraftError ? (
+              <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-200">
+                {deleteDraftError}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDeleteDraft(false);
+                  setDeleteDraftError(null);
+                }}
+                disabled={deletingDraft}
+                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleDeleteDraft();
+                }}
+                disabled={deletingDraft}
+                className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-400 disabled:opacity-60"
+              >
+                {deletingDraft ? "Deleting…" : "Delete draft"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {draftDeleted ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+              Draft deleted
+            </p>
+            <h2 className="text-lg font-semibold text-slate-50">
+              {issue.project_key}-{issue.issue_number} was removed
+            </h2>
+            <p className="text-sm leading-6 text-slate-400">
+              The draft and its uploads are gone. This tab should close
+              automatically.
+            </p>
+            <button
+              type="button"
+              onClick={() => requestCanvasClose()}
+              className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+            >
+              Close tab
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {submissionResult ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-4">
           <div className="w-full max-w-md space-y-4 rounded-xl border border-emerald-500/30 bg-slate-900 p-6 shadow-2xl">
@@ -907,12 +1055,25 @@ export function CanvasEditorShell({
               The annotated PNG, vector scene and any attachments have been
               saved. The issue is now in the Pending column.
             </p>
-            <a
-              href={submissionResult.redirectUrl}
-              className="inline-block rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-            >
-              Open on the Kanban board
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={submissionResult.redirectUrl}
+                className="inline-block rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+              >
+                Open on the Kanban board
+              </a>
+              <button
+                type="button"
+                onClick={() => requestCanvasClose()}
+                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+              >
+                Close tab
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              This tab closes automatically. If the browser blocks it, use
+              Close tab.
+            </p>
           </div>
         </div>
       ) : null}

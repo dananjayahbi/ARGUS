@@ -66,6 +66,10 @@ The overlay is fully wired:
   elements after the first frame and restoring the page afterwards.
 - **Text-only report** shows an inline title/description/priority form and
   creates a `text_only` issue that is finalized straight to Pending.
+- **Quick submit** shows the same inline title/description/priority form but
+  finalizes the captures already staged for the issue straight to Pending,
+  without opening the canvas editor. Use it when the screenshots need no
+  annotation.
 - **Harvest now** renders the page metadata and the latest console/network
   errors inside the popup.
 - **Use this screenshot** uploads the raw PNG to the CDN, creates a draft and
@@ -78,6 +82,9 @@ The overlay is fully wired:
   list stages the current preview and immediately starts another area snip.
   After a report is created the popup clears its captures, preview, text form,
   steps and status messages, so it is immediately ready for the next issue.
+  The canvas tab opened by **Use N screenshots** closes itself after a
+  successful submit or after **Delete draft**; if a browser blocks it, the
+  confirmation screen offers a **Close tab** button.
 - Diagnostics harvester injected into the active tab: URL, title, viewport,
   screen, DPR, OS, browser/engine and an ISO-8601 timestamp, plus a rolling
   50-entry buffer of console errors, warnings, unhandled rejections and

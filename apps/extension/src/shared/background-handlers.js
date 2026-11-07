@@ -35,7 +35,9 @@ export function createMessageHandler({
   getSnapshot,
   openOptions,
   createTab,
+  closeTab,
   dispatchCapture,
+  quickSubmitCapture,
   submitTextReport,
   fetchImpl = fetch,
 }) {
@@ -68,6 +70,14 @@ export function createMessageHandler({
         return { ok: true };
       }
 
+      case "ARGUS_CLOSE_TAB": {
+        if (!sender?.tab?.id || typeof closeTab !== "function") {
+          return { ok: false, error: "No active tab to close." };
+        }
+        await closeTab(sender.tab.id);
+        return { ok: true };
+      }
+
       case "ARGUS_DISPATCH": {
         const settings = await loadSettings();
         if (!isConfigured(settings)) {
@@ -81,6 +91,24 @@ export function createMessageHandler({
           fetchImpl,
           createTab,
           readSnapshot: (tabId) => getSnapshot(tabId),
+        });
+      }
+
+      case "ARGUS_QUICK_SUBMIT": {
+        const settings = await loadSettings();
+        if (!isConfigured(settings)) {
+          return { ...configError(), step: 0 };
+        }
+
+        return quickSubmitCapture({
+          capture: message.capture,
+          captures: message.captures,
+          settings,
+          fetchImpl,
+          readSnapshot: (tabId) => getSnapshot(tabId),
+          title: message.title,
+          description: message.description,
+          priority: message.priority,
         });
       }
 

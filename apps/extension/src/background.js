@@ -7,7 +7,7 @@
 // requests. It delegates those operations here over chrome.runtime messages.
 
 import { isConfigured, loadSettings } from "./shared/config.js";
-import { dispatchCapture } from "./shared/dispatch.js";
+import { dispatchCapture, quickSubmitCapture } from "./shared/dispatch.js";
 import { submitTextReport } from "./shared/text-report.js";
 import { createMessageHandler } from "./shared/background-handlers.js";
 
@@ -106,7 +106,9 @@ const handleMessage = createMessageHandler({
   getSnapshot,
   openOptions: () => chrome.runtime.openOptionsPage(),
   createTab: (url) => chrome.tabs.create({ url }),
+  closeTab: (tabId) => chrome.tabs.remove(tabId),
   dispatchCapture,
+  quickSubmitCapture,
   submitTextReport,
   fetchImpl: fetch,
 });

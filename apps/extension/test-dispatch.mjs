@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { dispatchCapture } from "./src/shared/dispatch.js";
+import { dispatchCapture, quickSubmitCapture } from "./src/shared/dispatch.js";
 
 const capture = {
   dataUrl: "data:image/png;base64,AAAA",
@@ -73,6 +73,16 @@ function makeFetch(overrides = {}) {
           },
           201,
         )
+      );
+    }
+    if (String(url).includes("/finalize")) {
+      return (
+        overrides.finalize ??
+        jsonResponse({
+          success: true,
+          status: "pending",
+          redirect_url: "/projects/ARG",
+        })
       );
     }
 
@@ -265,9 +275,96 @@ async function testMultipleCaptures() {
   );
 }
 
+async function testQuickSubmitSuccess() {
+  const { fetchImpl, calls } = makeFetch();
+
+  const result = await quickSubmitCapture({
+    capture,
+    settings,
+    fetchImpl,
+    title: "  Quick bug  ",
+    description: "Steps and details",
+    priority: 40,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.issueId, "issue");
+  assert.equal(result.captureCount, 1);
+  assert.equal(
+    result.redirectUrl,
+    "http://app.test/projects/ARG?issue=issue",
+  );
+
+  const finalizeCall = calls.find((call) => call.url.includes("/finalize"));
+  assert.match(
+    finalizeCall.url,
+    /\/api\/issues\/issue\/finalize\?token=token$/,
+  );
+  assert.deepEqual(JSON.parse(finalizeCall.init.body), {
+    title: "Quick bug",
+    description: "Steps and details",
+    priority: 40,
+  });
+}
+
+async function testQuickSubmitValidation() {
+  const { fetchImpl, calls } = makeFetch();
+
+  const noTitle = await quickSubmitCapture({
+    capture,
+    settings,
+    fetchImpl,
+    title: "   ",
+    priority: 50,
+  });
+  assert.equal(noTitle.ok, false);
+  assert.match(noTitle.error, /title/i);
+
+  const badPriority = await quickSubmitCapture({
+    capture,
+    settings,
+    fetchImpl,
+    title: "Bug",
+    priority: 101,
+  });
+  assert.equal(badPriority.ok, false);
+  assert.match(badPriority.error, /Priority/);
+
+  assert.equal(calls.length, 0);
+}
+
+async function testQuickSubmitFinalizeFailure() {
+  const { fetchImpl, calls } = makeFetch({
+    finalize: jsonResponse(
+      { error: { message: "Only draft issues can be finalized." } },
+      409,
+    ),
+  });
+
+  const result = await quickSubmitCapture({
+    capture,
+    settings,
+    fetchImpl,
+    title: "Quick bug",
+    description: "Details",
+    priority: 40,
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Quick submit failed/);
+  assert.match(result.error, /stays in Draft/);
+  assert.equal(
+    calls.filter((call) => call.url.endsWith("/api/upload")).length,
+    1,
+  );
+}
+
 await testSuccess();
 await testMultipleCaptures();
 await testMissingSnapshotProducesValidEnvironment();
 await testCdnFailure();
 await testIngestFailure();
+await testQuickSubmitSuccess();
+await testQuickSubmitValidation();
+await testQuickSubmitFinalizeFailure();
 console.log("Dispatch flow tests passed.");

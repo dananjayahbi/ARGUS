@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { jsonError } from "@/lib/api-errors";
 import { query } from "@/lib/db";
+import { verifyDraftTokenForIssue } from "@/lib/draft-token";
 import { withApiObservability } from "@/lib/observability";
 import { hasDashboardSession } from "@/lib/session";
 import { updateIssueSchema } from "@/lib/validation";
@@ -12,6 +13,20 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const idSchema = z.string().uuid();
+
+function extractDraftToken(request: Request): string | null {
+  const queryToken = new URL(request.url).searchParams.get("token");
+  if (queryToken) {
+    return queryToken;
+  }
+
+  const authorization = request.headers.get("authorization");
+  if (authorization?.toLowerCase().startsWith("bearer ")) {
+    return authorization.slice(7).trim() || null;
+  }
+
+  return null;
+}
 
 interface IssueDetailRow extends QueryResultRow {
   id: string;
@@ -253,17 +268,35 @@ async function handleDELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await hasDashboardSession(request))) {
-    return jsonError("UNAUTHORIZED", "Dashboard session required.");
-  }
+  const hasSession = await hasDashboardSession(request);
 
   const { id } = await context.params;
   if (!idSchema.safeParse(id).success) {
     return jsonError("NOT_FOUND", "Issue not found.");
   }
 
+  // The tokenized canvas editor is unauthenticated, so its draft token may
+  // delete its own draft. It can never delete a submitted issue.
+  let draftTokenOnly = false;
+  if (!hasSession) {
+    const token = extractDraftToken(request);
+    if (!token) {
+      return jsonError(
+        "UNAUTHORIZED",
+        "A draft token or dashboard session is required.",
+      );
+    }
+    const verified = verifyDraftTokenForIssue(token, id);
+    if (!verified.ok) {
+      return jsonError("UNAUTHORIZED", "Invalid or expired draft token.");
+    }
+    draftTokenOnly = true;
+  }
+
   const result = await query(
-    "DELETE FROM issues WHERE id = $1 RETURNING id",
+    draftTokenOnly
+      ? "DELETE FROM issues WHERE id = $1 AND status = 'draft' RETURNING id"
+      : "DELETE FROM issues WHERE id = $1 RETURNING id",
     [id],
   );
 

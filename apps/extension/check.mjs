@@ -114,7 +114,9 @@ for (const marker of [
   'id="argus-add-more"',
   'id="argus-staged-list"',
   'id="argus-create-staged"',
+  'id="argus-quick"',
   'type: "ARGUS_DISPATCH"',
+  'type: "ARGUS_QUICK_SUBMIT"',
   "captures,",
 ]) {
   if (!overlay.includes(marker)) {
@@ -151,7 +153,7 @@ for (const guard of ["CONTEXT_LOST_MESSAGE", "function isExtensionAlive()"]) {
 }
 
 if (
-  !/function applyButtonState\(\)[\s\S]{0,400}updateCaptureButtons\(\)/.test(
+  !/function applyButtonState\(\)[\s\S]{0,800}updateCaptureButtons\(\)/.test(
     overlay,
   )
 ) {

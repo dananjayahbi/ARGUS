@@ -64,6 +64,7 @@
         <p id="argus-status" class="argus-status">Checking configuration…</p>
         <button type="button" id="argus-area" class="argus-btn primary">Area snip</button>
         <button type="button" id="argus-full" class="argus-btn">Full page</button>
+        <button type="button" id="argus-quick" class="argus-btn">Quick submit</button>
         <button type="button" id="argus-text" class="argus-btn">Text-only report</button>
         <button type="button" id="argus-harvest" class="argus-btn">Harvest now</button>
         <button type="button" id="argus-settings" class="argus-btn ghost">⚙ Settings (tokens &amp; project)</button>
@@ -85,6 +86,25 @@
           </div>
           <button type="button" id="argus-text-submit" class="argus-btn primary">Submit text report</button>
           <p id="argus-text-status" class="argus-status" hidden></p>
+        </section>
+
+        <section id="argus-quick-form" hidden>
+          <p class="argus-muted">Submit the captured screenshots without opening the canvas editor.</p>
+          <div class="argus-field">
+            <label for="argus-quick-title">Title</label>
+            <input type="text" id="argus-quick-title" placeholder="Short bug title" />
+          </div>
+          <div class="argus-field">
+            <label for="argus-quick-description">Description (Markdown)</label>
+            <textarea id="argus-quick-description" placeholder="Steps, expected vs actual…"></textarea>
+          </div>
+          <div class="argus-field">
+            <label for="argus-quick-priority">Priority</label>
+            <input type="range" id="argus-quick-priority" min="0" max="100" step="1" value="50" />
+            <span id="argus-quick-priority-label" class="argus-priority">50% · Medium / Functional Flaw</span>
+          </div>
+          <button type="button" id="argus-quick-submit" class="argus-btn primary">Submit to Pending</button>
+          <p id="argus-quick-status" class="argus-status" hidden></p>
         </section>
 
         <section id="argus-staged" class="argus-staged">
@@ -136,6 +156,13 @@
   const textPriorityLabel = $("#argus-text-priority-label");
   const textSubmit = $("#argus-text-submit");
   const textStatus = $("#argus-text-status");
+  const quickForm = $("#argus-quick-form");
+  const quickTitle = $("#argus-quick-title");
+  const quickDescription = $("#argus-quick-description");
+  const quickPriority = $("#argus-quick-priority");
+  const quickPriorityLabel = $("#argus-quick-priority-label");
+  const quickSubmit = $("#argus-quick-submit");
+  const quickStatus = $("#argus-quick-status");
   const stagedList = $("#argus-staged-list");
   const stagedCount = $("#argus-staged-count");
   const addMoreBtn = $("#argus-add-more");
@@ -144,6 +171,7 @@
   const buttons = {
     area: $("#argus-area"),
     full: $("#argus-full"),
+    quick: $("#argus-quick"),
     text: $("#argus-text"),
     harvest: $("#argus-harvest"),
     settings: $("#argus-settings"),
@@ -174,6 +202,12 @@
     textStatus.hidden = !message;
     textStatus.textContent = message;
     textStatus.className = `argus-status${tone ? ` ${tone}` : ""}`;
+  }
+
+  function setQuickStatus(message, tone = "") {
+    quickStatus.hidden = !message;
+    quickStatus.textContent = message;
+    quickStatus.className = `argus-status${tone ? ` ${tone}` : ""}`;
   }
 
   function delay(ms) {
@@ -271,6 +305,7 @@
     const capturable = isPageCapturable();
     buttons.area.disabled = !alive || !configured || !capturable;
     buttons.full.disabled = !alive || !configured || !capturable;
+    buttons.quick.disabled = !alive || !configured;
     buttons.text.disabled = !alive || !configured;
     buttons.harvest.disabled = !alive;
     updateCaptureButtons();
@@ -694,6 +729,7 @@
     }`;
     clearStagedBtn.hidden = stagedCaptures.length === 0;
     clearStagedBtn.disabled = busy || !alive;
+    quickSubmit.disabled = total === 0 || busy || !alive;
   }
 
   function renderStagedCaptures() {
@@ -794,6 +830,12 @@
     textPriority.value = "50";
     updatePriorityLabel();
     setTextStatus("");
+    quickForm.hidden = true;
+    quickTitle.value = "";
+    quickDescription.value = "";
+    quickPriority.value = "50";
+    updateQuickPriorityLabel();
+    setQuickStatus("");
     setDispatchStatus("");
     steps.hidden = true;
     steps.replaceChildren();
@@ -843,6 +885,11 @@
   function updatePriorityLabel() {
     const value = Number(textPriority.value);
     textPriorityLabel.textContent = `${value}% · ${priorityLabel(value)}`;
+  }
+
+  function updateQuickPriorityLabel() {
+    const value = Number(quickPriority.value);
+    quickPriorityLabel.textContent = `${value}% · ${priorityLabel(value)}`;
   }
 
   function renderDiagnostics(snapshot) {
@@ -1138,6 +1185,75 @@
     }
   }
 
+  async function submitQuickReport() {
+    if (busy) {
+      return;
+    }
+
+    const title = quickTitle.value.trim();
+    const description = quickDescription.value;
+    const priority = Number(quickPriority.value);
+
+    if (!title) {
+      setQuickStatus("A title is required.", "error");
+      quickTitle.focus();
+      return;
+    }
+    if (!Number.isInteger(priority) || priority < 0 || priority > 100) {
+      setQuickStatus("Priority must be an integer from 0 to 100.", "error");
+      return;
+    }
+
+    const captures = [
+      ...stagedCaptures,
+      ...(lastCapture ? [lastCapture] : []),
+    ];
+
+    if (captures.length === 0) {
+      setQuickStatus(
+        "Capture a screenshot first, then use Quick submit.",
+        "warn",
+      );
+      return;
+    }
+    if (!settings || !isConfigured(settings)) {
+      setQuickStatus(
+        "Open Settings and complete the configuration first.",
+        "warn",
+      );
+      return;
+    }
+
+    busy = true;
+    updateCaptureButtons();
+    setQuickStatus("Submitting issue…", "");
+
+    try {
+      const result = await send({
+        type: "ARGUS_QUICK_SUBMIT",
+        projectId: settings.projectId,
+        title,
+        description,
+        priority,
+        captures,
+      });
+
+      if (!result?.ok) {
+        setQuickStatus(result?.error ?? "Quick submit failed.", "error");
+        return;
+      }
+
+      resetForNextIssue(
+        `Issue submitted to Pending with ${captures.length} screenshot${
+          captures.length === 1 ? "" : "s"
+        }. Ready for the next report.`,
+      );
+    } finally {
+      busy = false;
+      updateCaptureButtons();
+    }
+  }
+
   async function harvest() {
     diagnostics.hidden = false;
     diagnostics.textContent = "Harvesting…";
@@ -1200,6 +1316,12 @@
       textTitle.focus();
     }
   });
+  buttons.quick.addEventListener("click", () => {
+    quickForm.hidden = !quickForm.hidden;
+    if (!quickForm.hidden) {
+      quickTitle.focus();
+    }
+  });
   buttons.harvest.addEventListener("click", () => {
     void harvest();
   });
@@ -1228,6 +1350,10 @@
   textSubmit.addEventListener("click", () => {
     void submitTextReport();
   });
+  quickPriority.addEventListener("input", updateQuickPriorityLabel);
+  quickSubmit.addEventListener("click", () => {
+    void submitQuickReport();
+  });
 
   const onEscape = (event) => {
     if (event.key === "Escape" && !popup.hidden) {
@@ -1241,7 +1367,22 @@
     }
   };
 
+  // The ARGUS canvas page asks the extension to close its tab after a
+  // successful submit or a draft deletion. Page scripts cannot call
+  // chrome.tabs directly, so it posts a message and the content script
+  // forwards it to the service worker.
+  const onWindowMessage = (event) => {
+    if (event.source !== window) {
+      return;
+    }
+    if (event.data?.type !== "ARGUS_CLOSE_CANVAS") {
+      return;
+    }
+    void send({ type: "ARGUS_CLOSE_TAB" });
+  };
+
   document.addEventListener("keydown", onEscape);
+  window.addEventListener("message", onWindowMessage);
   try {
     getRuntime()?.onMessage?.addListener?.(onRuntimeMessage);
   } catch {
@@ -1251,6 +1392,7 @@
 
   function destroy() {
     document.removeEventListener("keydown", onEscape);
+    window.removeEventListener("message", onWindowMessage);
     try {
       getRuntime()?.onMessage?.removeListener?.(onRuntimeMessage);
     } catch {
@@ -1269,6 +1411,7 @@
   };
 
   updatePriorityLabel();
+  updateQuickPriorityLabel();
   clearPreview();
   renderStagedCaptures();
 

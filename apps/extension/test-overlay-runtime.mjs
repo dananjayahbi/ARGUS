@@ -133,6 +133,8 @@ function createEnvironment({ chrome } = {}) {
   window.devicePixelRatio = 1;
   window.setTimeout = setTimeout;
   window.requestAnimationFrame = context.requestAnimationFrame;
+  window.addEventListener = () => {};
+  window.removeEventListener = () => {};
 
   const sandbox = vm.createContext(context);
   vm.runInContext(source, sandbox, { filename: "content/overlay.js" });
@@ -334,6 +336,83 @@ function assertOverlayInstalled(environment) {
   assert.match(
     environment.query("#argus-status").textContent,
     /Ready for the next report/i,
+  );
+}
+
+// 7. Quick submit sends the staged captures and title/description/priority,
+// then clears the popup without opening the canvas editor.
+{
+  const settings = {
+    appBaseUrl: "http://app.test",
+    cdnBaseUrl: "http://cdn.test",
+    workspaceToken: "workspace",
+    cdnToken: "cdn",
+    projectId: "11111111-1111-4111-8111-111111111111",
+  };
+  const staged = [
+    {
+      dataUrl: "data:image/png;base64,AAAA",
+      pageUrl: "https://a.test",
+      pageTitle: "A",
+      mode: "area",
+      capturedAt: "2026-11-07T10:00:00.000Z",
+    },
+  ];
+  const sent = [];
+  const chrome = {
+    runtime: {
+      id: "abcdefghijklmnop",
+      sendMessage: async (message) => {
+        sent.push(message);
+        return message.type === "ARGUS_QUICK_SUBMIT"
+          ? {
+              ok: true,
+              issueId: "issue",
+              redirectUrl: "http://app.test/projects/ARG?issue=issue",
+            }
+          : { ok: true };
+      },
+      onMessage: { addListener() {}, removeListener() {} },
+    },
+    storage: {
+      local: { get: async () => ({ "argus.settings.v1": settings }) },
+      session: {
+        get: async () => ({ "argus.stagedCaptures": staged }),
+        set: async () => {},
+      },
+    },
+  };
+
+  const environment = createEnvironment({ chrome });
+  await flush();
+  environment.query("#argus-popup").hidden = true;
+  environment.window.__ARGUS_OVERLAY__.toggle();
+  await flush();
+
+  environment.query("#argus-quick").click();
+  environment.query("#argus-quick-title").value = "Quick bug";
+  environment.query("#argus-quick-description").value = "Details";
+  environment.query("#argus-quick-priority").value = "40";
+  environment.query("#argus-quick-submit").click();
+  await flush();
+  await flush();
+
+  const quickMessage = sent.find(
+    (message) => message.type === "ARGUS_QUICK_SUBMIT",
+  );
+  assert.ok(quickMessage);
+  assert.equal(quickMessage.title, "Quick bug");
+  assert.equal(quickMessage.description, "Details");
+  assert.equal(quickMessage.priority, 40);
+  assert.equal(quickMessage.captures.length, 1);
+
+  assert.equal(environment.query("#argus-quick-form").hidden, true);
+  assert.equal(environment.query("#argus-quick-title").value, "");
+  assert.equal(environment.query("#argus-quick-status").textContent, "");
+  assert.equal(environment.query("#argus-staged-count").textContent, "0");
+  assert.match(
+    environment.query("#argus-status").textContent,
+    /submitted to Pending/i,
   );
 }
 

@@ -18,7 +18,9 @@ function makeHandler(overrides = {}) {
     getSnapshot: [],
     openOptions: 0,
     createTab: [],
+    closeTab: [],
     dispatch: [],
+    quick: [],
     textReport: [],
   };
 
@@ -43,9 +45,20 @@ function makeHandler(overrides = {}) {
     createTab: async (url) => {
       calls.createTab.push(url);
     },
+    closeTab: async (tabId) => {
+      calls.closeTab.push(tabId);
+    },
     dispatchCapture: async (input) => {
       calls.dispatch.push(input);
       return { ok: true, step: 2, editorUrl: "http://app.test/canvas/x" };
+    },
+    quickSubmitCapture: async (input) => {
+      calls.quick.push(input);
+      return {
+        ok: true,
+        issueId: "issue",
+        redirectUrl: "http://app.test/projects/ARG?issue=issue",
+      };
     },
     submitTextReport: async (input) => {
       calls.textReport.push(input);
@@ -94,6 +107,13 @@ async function testSnapshot() {
   assert.match(missing.error, /did not return/);
 }
 
+async function testCloseTab() {
+  const { handler, calls } = makeHandler();
+  const result = await handler({ type: "ARGUS_CLOSE_TAB" }, sender);
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(calls.closeTab, [7]);
+}
+
 async function testDispatch() {
   const { handler, calls } = makeHandler();
   const capture = { dataUrl: "data:image/png;base64,AAAA" };
@@ -122,6 +142,42 @@ async function testDispatchUnconfigured() {
   assert.equal(result.ok, false);
   assert.match(result.error, /Settings/);
   assert.equal(calls.dispatch.length, 0);
+}
+
+async function testQuickSubmit() {
+  const { handler, calls } = makeHandler();
+  const capture = { dataUrl: "data:image/png;base64,AAAA" };
+  const captures = [capture, { dataUrl: "data:image/png;base64,BBBB" }];
+  const result = await handler(
+    {
+      type: "ARGUS_QUICK_SUBMIT",
+      title: "Quick bug",
+      description: "Details",
+      priority: 40,
+      capture,
+      captures,
+    },
+    sender,
+  );
+  assert.equal(result.ok, true);
+  assert.match(result.redirectUrl, /projects\/ARG/);
+  assert.equal(calls.quick.length, 1);
+  assert.equal(calls.quick[0].title, "Quick bug");
+  assert.equal(calls.quick[0].priority, 40);
+  assert.equal(calls.quick[0].settings.projectId, settings.projectId);
+  assert.equal(calls.quick[0].captures, captures);
+  assert.equal(typeof calls.quick[0].readSnapshot, "function");
+}
+
+async function testQuickSubmitUnconfigured() {
+  const { handler, calls } = makeHandler({ isConfigured: () => false });
+  const result = await handler(
+    { type: "ARGUS_QUICK_SUBMIT", title: "Quick bug", priority: 40, capture: {} },
+    sender,
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Settings/);
+  assert.equal(calls.quick.length, 0);
 }
 
 async function testTextReportUsesSnapshot() {
@@ -189,9 +245,12 @@ async function testUnknown() {
 
 await testCaptureVisible();
 await testOpenOptions();
+await testCloseTab();
 await testSnapshot();
 await testDispatch();
 await testDispatchUnconfigured();
+await testQuickSubmit();
+await testQuickSubmitUnconfigured();
 await testTextReportUsesSnapshot();
 await testTextReportFallsBackToEnvironment();
 await testTextReportFallbackHasNoInvalidDimensions();

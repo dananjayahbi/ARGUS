@@ -46,21 +46,7 @@ export function buildCapturedPages(captures, uploads) {
   return pages;
 }
 
-export async function dispatchCapture({
-  capture,
-  captures,
-  settings,
-  fetchImpl = fetch,
-  createTab,
-  readSnapshot,
-  onStep,
-}) {
-  const list = captureList(capture, captures);
-
-  if (list.length === 0) {
-    return { ok: false, step: 0, error: "Capture a screenshot first." };
-  }
-
+async function prepareCapture(list, readSnapshot) {
   const primary = list[0];
   const snapshot =
     primary.snapshot ??
@@ -81,13 +67,18 @@ export async function dispatchCapture({
   if (!environment.os) {
     environment.os = "Unknown";
   }
-  const logs = Array.isArray(snapshot?.console_logs)
-    ? snapshot.console_logs
-    : [];
 
-  onStep?.(0);
+  return {
+    primary,
+    snapshot,
+    environment,
+    logs: Array.isArray(snapshot?.console_logs) ? snapshot.console_logs : [],
+  };
+}
 
+async function uploadCaptures(list, settings, fetchImpl) {
   const uploads = [];
+
   for (let index = 0; index < list.length; index += 1) {
     const item = list[index];
     const blob = await (await fetchImpl(item.dataUrl)).blob();
@@ -112,7 +103,6 @@ export async function dispatchCapture({
     if (!uploadResponse.ok || !uploadBody.url) {
       return {
         ok: false,
-        step: 0,
         error: `Raw upload failed for screenshot ${index + 1} of ${list.length}: ${
           uploadBody.detail ?? uploadResponse.status
         }. No draft was created.`,
@@ -122,10 +112,18 @@ export async function dispatchCapture({
     uploads.push(uploadBody);
   }
 
-  environment.captured_pages = buildCapturedPages(list, uploads);
+  return { ok: true, uploads };
+}
 
-  onStep?.(1);
-
+async function createDraft({
+  list,
+  primary,
+  environment,
+  logs,
+  uploads,
+  settings,
+  fetchImpl,
+}) {
   const ingestResponse = await fetchImpl(
     `${settings.appBaseUrl}/api/ingest/draft`,
     {
@@ -169,8 +167,6 @@ export async function dispatchCapture({
 
     return {
       ok: false,
-      step: 1,
-      uploadUrl: uploads[0].url,
       error: `Draft creation failed: ${reason}${
         details ? ` (${details})` : ""
       }. The raw ${list.length > 1 ? "images were" : "image was"} uploaded to ${
@@ -181,15 +177,188 @@ export async function dispatchCapture({
     };
   }
 
+  return {
+    ok: true,
+    issueId: ingestBody.issue_id,
+    draftToken: ingestBody.draft_token,
+    editorUrl: ingestBody.editor_url,
+  };
+}
+
+export async function dispatchCapture({
+  capture,
+  captures,
+  settings,
+  fetchImpl = fetch,
+  createTab,
+  readSnapshot,
+  onStep,
+}) {
+  const list = captureList(capture, captures);
+
+  if (list.length === 0) {
+    return { ok: false, step: 0, error: "Capture a screenshot first." };
+  }
+
+  const { primary, environment, logs } = await prepareCapture(
+    list,
+    readSnapshot,
+  );
+
+  onStep?.(0);
+
+  const uploaded = await uploadCaptures(list, settings, fetchImpl);
+  if (!uploaded.ok) {
+    return { ok: false, step: 0, error: uploaded.error };
+  }
+
+  environment.captured_pages = buildCapturedPages(list, uploaded.uploads);
+
+  onStep?.(1);
+
+  const draft = await createDraft({
+    list,
+    primary,
+    environment,
+    logs,
+    uploads: uploaded.uploads,
+    settings,
+    fetchImpl,
+  });
+
+  if (!draft.ok) {
+    return {
+      ok: false,
+      step: 1,
+      uploadUrl: uploaded.uploads[0].url,
+      error: draft.error,
+    };
+  }
+
   onStep?.(2);
-  await createTab(ingestBody.editor_url);
+  await createTab(draft.editorUrl);
 
   return {
     ok: true,
     step: 2,
-    editorUrl: ingestBody.editor_url,
-    uploadUrl: uploads[0].url,
-    uploadUrls: uploads.map((upload) => upload.url),
+    editorUrl: draft.editorUrl,
+    uploadUrl: uploaded.uploads[0].url,
+    uploadUrls: uploaded.uploads.map((upload) => upload.url),
+    captureCount: list.length,
+  };
+}
+
+/**
+ * Upload the captures and finalize the draft in one go, without opening the
+ * canvas editor. The operator supplies the title, description and priority in
+ * the extension popup; the issue lands directly in Pending.
+ */
+export async function quickSubmitCapture({
+  capture,
+  captures,
+  settings,
+  fetchImpl = fetch,
+  readSnapshot,
+  title,
+  description,
+  priority,
+  onStep,
+}) {
+  const cleanTitle = typeof title === "string" ? title.trim() : "";
+  if (!cleanTitle) {
+    return { ok: false, step: 0, error: "A title is required." };
+  }
+  if (!Number.isInteger(priority) || priority < 0 || priority > 100) {
+    return {
+      ok: false,
+      step: 0,
+      error: "Priority must be an integer from 0 to 100.",
+    };
+  }
+
+  const list = captureList(capture, captures);
+  if (list.length === 0) {
+    return { ok: false, step: 0, error: "Capture a screenshot first." };
+  }
+
+  const { primary, environment, logs } = await prepareCapture(
+    list,
+    readSnapshot,
+  );
+
+  onStep?.(0);
+
+  const uploaded = await uploadCaptures(list, settings, fetchImpl);
+  if (!uploaded.ok) {
+    return { ok: false, step: 0, error: uploaded.error };
+  }
+
+  environment.captured_pages = buildCapturedPages(list, uploaded.uploads);
+
+  onStep?.(1);
+
+  const draft = await createDraft({
+    list,
+    primary,
+    environment,
+    logs,
+    uploads: uploaded.uploads,
+    settings,
+    fetchImpl,
+  });
+
+  if (!draft.ok) {
+    return {
+      ok: false,
+      step: 1,
+      uploadUrl: uploaded.uploads[0].url,
+      error: draft.error,
+    };
+  }
+
+  onStep?.(2);
+
+  const finalizeResponse = await fetchImpl(
+    `${settings.appBaseUrl}/api/issues/${draft.issueId}/finalize?token=${encodeURIComponent(
+      draft.draftToken,
+    )}`,
+    {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: cleanTitle,
+        description,
+        priority,
+      }),
+    },
+  );
+  const finalizeBody = await finalizeResponse.json().catch(() => ({}));
+
+  if (!finalizeResponse.ok) {
+    const reason = String(
+      finalizeBody.error?.message ??
+        finalizeBody.detail ??
+        `HTTP ${finalizeResponse.status}`,
+    ).replace(/[.\s]+$/, "");
+    return {
+      ok: false,
+      step: 2,
+      issueId: draft.issueId,
+      editorUrl: draft.editorUrl,
+      uploadUrl: uploaded.uploads[0].url,
+      error: `Quick submit failed: ${reason}. The draft was created and stays in Draft.`,
+    };
+  }
+
+  onStep?.(3);
+
+  return {
+    ok: true,
+    step: 3,
+    issueId: draft.issueId,
+    redirectUrl: `${settings.appBaseUrl}${finalizeBody.redirect_url ?? "/dashboard"}?issue=${draft.issueId}`,
+    uploadUrl: uploaded.uploads[0].url,
+    uploadUrls: uploaded.uploads.map((upload) => upload.url),
     captureCount: list.length,
   };
 }

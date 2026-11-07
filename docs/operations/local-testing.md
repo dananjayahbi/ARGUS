@@ -233,6 +233,13 @@ card appears on the board. After the draft is created the extension popup
 clears itself (captures, preview, steps and messages) and is ready for the next
 report; the same reset applies after a text-only report.
 
+For screenshots that need no annotation, use **Quick submit**: it opens an
+inline title/description/priority form and finalizes the staged captures
+straight to Pending without opening the canvas. On the canvas page, **Delete
+draft** (top right) removes the draft and its uploads, and the tab closes
+automatically after a successful submit or delete. Without the extension the
+canvas falls back to a **Close tab** button on the confirmation screen.
+
 ## 6. Automated gates (great for regression)
 
 ```powershell
