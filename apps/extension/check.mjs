@@ -111,6 +111,7 @@ if (overlay.includes('createElement("style")')) {
 
 for (const marker of [
   'id="argus-add"',
+  'id="argus-add-more"',
   'id="argus-staged-list"',
   'id="argus-create-staged"',
   'type: "ARGUS_DISPATCH"',
@@ -121,6 +122,16 @@ for (const marker of [
       `content/overlay.js is missing multi-screenshot marker: ${marker}`,
     );
   }
+}
+
+if (
+  !/function applyButtonState\(\)[\s\S]{0,400}updateCaptureButtons\(\)/.test(
+    overlay,
+  )
+) {
+  errors.push(
+    "content/overlay.js applyButtonState must call updateCaptureButtons so capture actions are re-enabled after a capture",
+  );
 }
 
 if (errors.length > 0) {

@@ -64,6 +64,9 @@
             <span id="argus-staged-count" class="argus-badge">0</span>
           </div>
           <div id="argus-staged-list" class="argus-staged-list"></div>
+          <button type="button" id="argus-add-more" class="argus-btn" disabled>
+            + Add another screenshot
+          </button>
           <button type="button" id="argus-create-staged" class="argus-btn primary" hidden>
             Create issue with 0 screenshots
           </button>
@@ -76,7 +79,7 @@
         <div id="argus-capture-actions" class="argus-capture-actions" hidden>
           <button type="button" id="argus-use" class="argus-btn primary">Use this screenshot</button>
           <button type="button" id="argus-add" class="argus-btn">Add to issue</button>
-          <button type="button" id="argus-discard" class="argus-btn">Take another one</button>
+          <button type="button" id="argus-discard" class="argus-btn">Discard capture</button>
         </div>
         <ol id="argus-steps" class="argus-steps" hidden></ol>
         <p id="argus-dispatch" class="argus-status" hidden></p>
@@ -106,6 +109,7 @@
   const textStatus = $("#argus-text-status");
   const stagedList = $("#argus-staged-list");
   const stagedCount = $("#argus-staged-count");
+  const addMoreBtn = $("#argus-add-more");
   const createStagedBtn = $("#argus-create-staged");
   const clearStagedBtn = $("#argus-clear-staged");
   const buttons = {
@@ -221,6 +225,7 @@
     buttons.full.disabled = !configured || !capturable;
     buttons.text.disabled = !configured;
     buttons.harvest.disabled = false;
+    updateCaptureButtons();
   }
 
   // ---------------------------------------------------------------- cropping
@@ -631,6 +636,8 @@
     buttons.discard.disabled = busy;
 
     stagedCount.textContent = String(stagedCaptures.length);
+    addMoreBtn.disabled =
+      busy || !isConfigured(settings) || !isPageCapturable();
     createStagedBtn.hidden = stagedCaptures.length === 0;
     createStagedBtn.disabled = total === 0 || busy;
     createStagedBtn.textContent = `Create issue with ${total} screenshot${
@@ -717,6 +724,16 @@
     stagedCaptures = [];
     void persistStagedCaptures();
     renderStagedCaptures();
+  }
+
+  async function captureAnother() {
+    if (busy) {
+      return;
+    }
+    if (lastCapture) {
+      await addCurrentCapture();
+    }
+    await captureArea();
   }
 
   function renderSteps(activeIndex, errorIndex = -1) {
@@ -1135,6 +1152,9 @@
   });
   createStagedBtn.addEventListener("click", () => {
     void dispatchCapture();
+  });
+  addMoreBtn.addEventListener("click", () => {
+    void captureAnother();
   });
   clearStagedBtn.addEventListener("click", () => {
     clearStagedCaptures();

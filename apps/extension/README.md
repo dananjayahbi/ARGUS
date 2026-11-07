@@ -58,8 +58,9 @@ The overlay is fully wired:
   issue**, it uploads every staged screenshot plus the current preview into a
   single draft and records the captured page URLs for each image. Staged
   captures live in `chrome.storage.session`, so you can move between pages
-  before creating the issue. **Take another one** discards only the current
-  preview with no network calls.
+  before creating the issue. **Discard capture** drops only the current
+  preview with no network calls; **+ Add another screenshot** in the captures
+  list stages the current preview and immediately starts another area snip.
 - Diagnostics harvester injected into the active tab: URL, title, viewport,
   screen, DPR, OS, browser/engine and an ISO-8601 timestamp, plus a rolling
   50-entry buffer of console errors, warnings, unhandled rejections and
