@@ -26,6 +26,18 @@ body {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.brand-logo {
+  border-radius: 0.85rem;
+  box-shadow: 0 10px 26px rgba(34, 211, 238, 0.2);
+}
+
 .eyebrow {
   margin: 0;
   font-size: 0.7rem;
@@ -36,7 +48,7 @@ body {
 }
 
 h1 {
-  margin: 0.75rem 0 0.5rem;
+  margin: 0.2rem 0 0;
   font-size: 1.5rem;
 }
 

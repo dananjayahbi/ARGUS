@@ -126,6 +126,36 @@ for (const marker of [
   }
 }
 
+// UI update #4: area snip is the highlighted primary action, shortcuts are
+// compact icon buttons, every report form can be cancelled back to area snip,
+// and the floating button uses the ARGUS logo.
+for (const marker of [
+  'id="argus-default-actions"',
+  'id="argus-area"',
+  'class="argus-area-btn"',
+  'class="argus-action-grid"',
+  'id="argus-text-cancel"',
+  'id="argus-quick-cancel"',
+  'class="argus-fab-logo"',
+  "function allCaptures()",
+]) {
+  if (!overlay.includes(marker)) {
+    errors.push(`content/overlay.js is missing UI update marker: ${marker}`);
+  }
+}
+
+if (!/function allCaptures\(\)[\s\S]{0,300}lastCapture/.test(overlay)) {
+  errors.push(
+    "content/overlay.js must include the latest capture in the thumbnail gallery",
+  );
+}
+
+for (const icon of Object.values(manifest.icons ?? {})) {
+  if (!existsSync(path.join(source, icon))) {
+    errors.push(`manifest icon is missing: ${icon}`);
+  }
+}
+
 // Bug #1: after the extension is reloaded/updated, chromium tears down the
 // extension APIs in content scripts that are already in a page. `chrome.runtime`
 // becomes undefined and any direct access crashes with

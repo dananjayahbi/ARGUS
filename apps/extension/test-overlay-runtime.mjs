@@ -277,6 +277,8 @@ function assertOverlayInstalled(environment) {
   await flush();
 
   assert.equal(environment.query("#argus-staged-count").textContent, "1");
+  assert.equal(environment.query("#argus-staged-list").children.length, 1);
+  assert.equal(environment.query("#argus-preview").hidden, true);
   environment.query("#argus-create-staged").click();
   await flush();
   await flush();
@@ -414,6 +416,55 @@ function assertOverlayInstalled(environment) {
     environment.query("#argus-status").textContent,
     /submitted to Pending/i,
   );
+}
+
+// 8. Quick submit and Text report take over the action area, and Cancel falls
+// back to the highlighted Area snip default.
+{
+  const settings = {
+    appBaseUrl: "http://app.test",
+    cdnBaseUrl: "http://cdn.test",
+    workspaceToken: "workspace",
+    cdnToken: "cdn",
+    projectId: "11111111-1111-4111-8111-111111111111",
+  };
+  const chrome = {
+    runtime: {
+      id: "abcdefghijklmnop",
+      sendMessage: async () => ({ ok: true }),
+      onMessage: { addListener() {}, removeListener() {} },
+    },
+    storage: {
+      local: { get: async () => ({ "argus.settings.v1": settings }) },
+      session: { get: async () => ({}), set: async () => {} },
+    },
+  };
+
+  const environment = createEnvironment({ chrome });
+  await flush();
+  environment.query("#argus-popup").hidden = true;
+  environment.window.__ARGUS_OVERLAY__.toggle();
+  await flush();
+
+  const defaultActions = environment.query("#argus-default-actions");
+  const textForm = environment.query("#argus-text-form");
+  const quickForm = environment.query("#argus-quick-form");
+
+  environment.query("#argus-text").click();
+  assert.equal(textForm.hidden, false);
+  assert.equal(defaultActions.hidden, true);
+
+  environment.query("#argus-text-cancel").click();
+  assert.equal(textForm.hidden, true);
+  assert.equal(defaultActions.hidden, false);
+
+  environment.query("#argus-quick").click();
+  assert.equal(quickForm.hidden, false);
+  assert.equal(defaultActions.hidden, true);
+
+  environment.query("#argus-quick-cancel").click();
+  assert.equal(quickForm.hidden, true);
+  assert.equal(defaultActions.hidden, false);
 }
 
 console.log("Overlay runtime-guard regression tests passed.");

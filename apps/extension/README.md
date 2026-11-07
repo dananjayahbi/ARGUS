@@ -21,9 +21,10 @@ The loadable extension is written to `dist/`. `dist/` is gitignored.
    previously loaded an older build, click **Reload** on the ARGUS entry so
    the new `<all_urls>` permission and overlay content script take effect,
    then reload the test page itself.)
-4. Any open http(s) web page now shows a floating **A** icon at the
+4. Any open http(s) web page now shows the floating **ARGUS eye** logo at the
    bottom-right corner. Click it to open the overlay popup (no page push,
-   no layout shift). Click the toolbar icon for the same popup.
+   no layout shift). The same logo is used for the toolbar icon and the
+   extension settings page.
 5. Open **Settings** and enter the five values (defaults already point at
    `http://localhost:13130` and `http://127.0.0.1:18130`):
    - **Workspace ingestion token**: `WORKSPACE_TOKEN` from `apps/web/.env.local`
@@ -54,32 +55,40 @@ The overlay is fully wired:
 
 - Manifest V3 with `activeTab`, `scripting`, `storage`, `tabs` and host
   permissions. There is no side panel.
-- A floating **A** icon is injected on every http(s) page, and the toolbar
-  action toggles the same overlay popup.
-- **⚙ Settings** in the popup opens the options page for the two tokens and
-  the project ID, so configuration is reachable without remembering the
+- A floating ARGUS logo is injected on every http(s) page, and the toolbar
+  action toggles the same overlay popup. The logo is an inline SVG eye inside
+  a capture frame, so page CSP cannot hide it. PNG variants under
+  `src/icons/` power the toolbar/extension icons and the options page.
+- The popup leads with a highlighted **Area snip** card. Full page, Quick
+  submit, Text report and Harvest are compact icon shortcuts underneath.
+- **⚙ Settings** in the popup header opens the options page for the two tokens
+  and the project ID, so configuration is reachable without remembering the
   toolbar menu.
 - Options page persists the app/CDN URLs, both tokens and the project ID.
 - **Area snip** draws a crosshair marquee over the page, captures the tab and
   crops to the selection at the captured image's pixel scale.
 - **Full page** scrolls and stitches the whole document, hiding fixed/sticky
   elements after the first frame and restoring the page afterwards.
-- **Text-only report** shows an inline title/description/priority form and
-  creates a `text_only` issue that is finalized straight to Pending.
+- **Text report** shows an inline title/description/priority form and creates
+  a `text_only` issue that is finalized straight to Pending. **Cancel** (or
+  Escape) returns to the Area snip default without submitting.
 - **Quick submit** shows the same inline title/description/priority form but
-  finalizes the captures already staged for the issue straight to Pending,
+  finalizes the captures already attached to the issue straight to Pending,
   without opening the canvas editor. Use it when the screenshots need no
-  annotation.
-- **Harvest now** renders the page metadata and the latest console/network
-  errors inside the popup.
-- **Use this screenshot** uploads the raw PNG to the CDN, creates a draft and
-  opens the canvas editor. When captures have been staged with **Add to
-  issue**, it uploads every staged screenshot plus the current preview into a
-  single draft and records the captured page URLs for each image. Staged
-  captures live in `chrome.storage.session`, so you can move between pages
-  before creating the issue. **Discard capture** drops only the current
-  preview with no network calls; **+ Add another screenshot** in the captures
-  list stages the current preview and immediately starts another area snip.
+  annotation. Its **Cancel** button also returns to Area snip.
+- **Harvest** renders the page metadata and the latest console/network errors
+  inside the popup.
+- **Captures for this issue** is a thumbnail gallery of every attached image,
+  including the newest capture (marked **New**). Each thumbnail has a remove
+  button, **+ Add another screenshot** is visually highlighted, and **Clear
+  all** resets the whole issue. **Use this screenshot** uploads the raw PNG to
+  the CDN, creates a draft and opens the canvas editor. When captures have
+  been staged, it uploads every staged screenshot plus the current preview
+  into a single draft and records the captured page URLs for each image.
+  Staged captures live in `chrome.storage.session`, so you can move between
+  pages before creating the issue. **Discard capture** drops only the current
+  preview with no network calls; **+ Add another screenshot** stages the
+  current preview and immediately starts another area snip.
   After a report is created the popup clears its captures, preview, text form,
   steps and status messages, so it is immediately ready for the next issue.
   The canvas tab opened by **Use N screenshots** closes itself after a

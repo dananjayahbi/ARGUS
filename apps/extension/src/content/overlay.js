@@ -52,25 +52,98 @@
   // inserted with chrome.scripting for the toolbar fallback. Injecting a
   // <style> element here would be blocked by page CSP on most sites.
 
+  // A single inline SVG mark keeps the logo crisp and independent of page CSP.
+  // The eye inside a capture frame is the ARGUS "hundred-eyed watcher". The
+  // gradient id is parameterised because the mark appears in both the popup
+  // header and the floating button.
+  const logoMark = (gradientId) => `
+    <svg class="argus-logo-svg" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="${gradientId}" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#22d3ee"/>
+          <stop offset="0.55" stop-color="#38bdf8"/>
+          <stop offset="1" stop-color="#818cf8"/>
+        </linearGradient>
+      </defs>
+      <rect x="1" y="1" width="46" height="46" rx="14" fill="url(#${gradientId})"/>
+      <g fill="none" stroke="#020617" stroke-width="2.4" stroke-linecap="round" opacity="0.88">
+        <path d="M10 18v-4a4 4 0 0 1 4-4h4"/>
+        <path d="M30 10h4a4 4 0 0 1 4 4v4"/>
+        <path d="M38 30v4a4 4 0 0 1-4 4h-4"/>
+        <path d="M18 38h-4a4 4 0 0 1-4-4v-4"/>
+      </g>
+      <path d="M12 24c3.2-4.9 7.1-7.4 12-7.4S32.8 19.1 36 24c-3.2 4.9-7.1 7.4-12 7.4S15.2 28.9 12 24Z" fill="#020617" opacity="0.92"/>
+      <circle cx="24" cy="24" r="4.2" fill="url(#${gradientId})"/>
+      <circle cx="24" cy="24" r="1.7" fill="#020617"/>
+      <circle cx="22.7" cy="22.7" r="0.7" fill="#e0f2fe" opacity="0.9"/>
+    </svg>`;
+
+  const icon = (paths) =>
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
+
+  const ICONS = {
+    close: icon('<path d="M6 6l12 12M18 6 6 18"/>'),
+    settings: icon(
+      '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
+    ),
+    crop: icon(
+      '<path d="M4 8V6a2 2 0 0 1 2-2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M20 16v2a2 2 0 0 1-2 2h-2"/><path d="M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M8 8h8v8H8z"/>',
+    ),
+    full: icon(
+      '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/>',
+    ),
+    quick: icon('<path d="m4 12 16-8-5 16-3.5-6.5L4 12Z"/>'),
+    text: icon('<path d="M4 6h16M4 11h12M4 16h16M4 21h9"/>'),
+    harvest: icon('<path d="M3 12h3l2.5-6 4 12 2.5-6H21"/>'),
+    plus: icon('<path d="M12 5v14M5 12h14"/>'),
+  };
+
   const root = document.createElement("div");
   root.id = "argus-overlay";
   root.innerHTML = `
     <div id="argus-popup" class="argus-popup" hidden>
-      <div class="argus-popup-head">
-        <span class="argus-popup-title">ARGUS QA capture</span>
-        <button type="button" id="argus-close" class="argus-close">Close</button>
-      </div>
+      <header class="argus-popup-head">
+        <div class="argus-brand">
+          <span class="argus-logo">${logoMark("argus-logo-gradient-head")}</span>
+          <span class="argus-brand-copy">
+            <span class="argus-brand-name">ARGUS</span>
+            <span class="argus-brand-sub">QA capture</span>
+          </span>
+        </div>
+        <div class="argus-head-actions">
+          <button type="button" id="argus-settings" class="argus-icon-btn" title="Settings (tokens &amp; project)" aria-label="Settings (tokens and project)">${ICONS.settings}</button>
+          <button type="button" id="argus-close" class="argus-icon-btn argus-close" title="Close" aria-label="Close">${ICONS.close}</button>
+        </div>
+      </header>
       <div class="argus-body">
-        <p id="argus-status" class="argus-status">Checking configuration…</p>
-        <button type="button" id="argus-area" class="argus-btn primary">Area snip</button>
-        <button type="button" id="argus-full" class="argus-btn">Full page</button>
-        <button type="button" id="argus-quick" class="argus-btn">Quick submit</button>
-        <button type="button" id="argus-text" class="argus-btn">Text-only report</button>
-        <button type="button" id="argus-harvest" class="argus-btn">Harvest now</button>
-        <button type="button" id="argus-settings" class="argus-btn ghost">⚙ Settings (tokens &amp; project)</button>
-        <p class="argus-muted">Area snip and full page capture this tab. Text-only creates a pending issue without a screenshot.</p>
+        <p id="argus-status" class="argus-status" role="status">Checking configuration…</p>
 
-        <section id="argus-text-form" hidden>
+        <section id="argus-default-actions" class="argus-action-zone">
+          <button type="button" id="argus-area" class="argus-area-btn">
+            <span class="argus-area-icon">${ICONS.crop}</span>
+            <span class="argus-area-copy">
+              <strong>Area snip</strong>
+              <small>Drag a region on this page</small>
+            </span>
+            <span class="argus-area-badge">Start</span>
+          </button>
+          <div class="argus-action-grid">
+            <button type="button" id="argus-full" class="argus-action" title="Capture the full page" aria-label="Capture the full page">${ICONS.full}<span>Full page</span></button>
+            <button type="button" id="argus-quick" class="argus-action" title="Submit captures without annotation" aria-label="Quick submit">${ICONS.quick}<span>Quick submit</span></button>
+            <button type="button" id="argus-text" class="argus-action" title="Create a report without a screenshot" aria-label="Text-only report">${ICONS.text}<span>Text only</span></button>
+            <button type="button" id="argus-harvest" class="argus-action" title="Harvest console and network diagnostics" aria-label="Harvest diagnostics">${ICONS.harvest}<span>Harvest</span></button>
+          </div>
+          <p class="argus-hint">Area snip is the default action. The icons are compact shortcuts.</p>
+        </section>
+
+        <section id="argus-text-form" class="argus-form" hidden>
+          <div class="argus-form-head">
+            <div>
+              <p class="argus-form-kicker">No screenshot</p>
+              <h2>Text-only report</h2>
+            </div>
+            <button type="button" id="argus-text-cancel" class="argus-btn ghost compact">Cancel</button>
+          </div>
           <div class="argus-field">
             <label for="argus-text-title">Title</label>
             <input type="text" id="argus-text-title" placeholder="Short bug title" />
@@ -88,8 +161,15 @@
           <p id="argus-text-status" class="argus-status" hidden></p>
         </section>
 
-        <section id="argus-quick-form" hidden>
-          <p class="argus-muted">Submit the captured screenshots without opening the canvas editor.</p>
+        <section id="argus-quick-form" class="argus-form" hidden>
+          <div class="argus-form-head">
+            <div>
+              <p class="argus-form-kicker">No canvas needed</p>
+              <h2>Quick submit</h2>
+            </div>
+            <button type="button" id="argus-quick-cancel" class="argus-btn ghost compact">Cancel</button>
+          </div>
+          <p id="argus-quick-summary" class="argus-muted">Submit the captured screenshots without opening the canvas editor.</p>
           <div class="argus-field">
             <label for="argus-quick-title">Title</label>
             <input type="text" id="argus-quick-title" placeholder="Short bug title" />
@@ -107,20 +187,17 @@
           <p id="argus-quick-status" class="argus-status" hidden></p>
         </section>
 
-        <section id="argus-staged" class="argus-staged">
-          <div class="argus-staged-head">
-            <span>Captures for this issue</span>
-            <span id="argus-staged-count" class="argus-badge">0</span>
+        <section id="argus-captures" class="argus-captures">
+          <div class="argus-section-head">
+            <span class="argus-section-title">Captures for this issue <span id="argus-staged-count" class="argus-badge">0</span></span>
+            <button type="button" id="argus-clear-staged" class="argus-link-btn" hidden>Clear all</button>
           </div>
           <div id="argus-staged-list" class="argus-staged-list"></div>
-          <button type="button" id="argus-add-more" class="argus-btn" disabled>
-            + Add another screenshot
+          <button type="button" id="argus-add-more" class="argus-btn highlight" disabled>
+            ${ICONS.plus}<span>Add another screenshot</span>
           </button>
           <button type="button" id="argus-create-staged" class="argus-btn primary" hidden>
             Create issue with 0 screenshots
-          </button>
-          <button type="button" id="argus-clear-staged" class="argus-btn ghost" hidden>
-            Clear all captures
           </button>
         </section>
 
@@ -128,14 +205,17 @@
         <div id="argus-capture-actions" class="argus-capture-actions" hidden>
           <button type="button" id="argus-use" class="argus-btn primary">Use this screenshot</button>
           <button type="button" id="argus-add" class="argus-btn">Add to issue</button>
-          <button type="button" id="argus-discard" class="argus-btn">Discard capture</button>
+          <button type="button" id="argus-discard" class="argus-btn ghost">Discard capture</button>
         </div>
         <ol id="argus-steps" class="argus-steps" hidden></ol>
         <p id="argus-dispatch" class="argus-status" hidden></p>
         <div id="argus-diagnostics" class="argus-diagnostics" hidden></div>
       </div>
     </div>
-    <button type="button" class="argus-fab" id="argus-fab" title="ARGUS QA Capture" aria-label="ARGUS QA Capture">A</button>
+    <button type="button" class="argus-fab" id="argus-fab" title="ARGUS QA Capture" aria-label="ARGUS QA Capture" aria-expanded="false">
+      <span class="argus-fab-logo">${logoMark("argus-logo-gradient-fab")}</span>
+      <span class="argus-fab-dot" aria-hidden="true"></span>
+    </button>
   `;
   document.documentElement.appendChild(root);
 
@@ -149,6 +229,7 @@
   const steps = $("#argus-steps");
   const dispatch = $("#argus-dispatch");
   const diagnostics = $("#argus-diagnostics");
+  const defaultActions = $("#argus-default-actions");
   const textForm = $("#argus-text-form");
   const textTitle = $("#argus-text-title");
   const textDescription = $("#argus-text-description");
@@ -156,6 +237,7 @@
   const textPriorityLabel = $("#argus-text-priority-label");
   const textSubmit = $("#argus-text-submit");
   const textStatus = $("#argus-text-status");
+  const textCancel = $("#argus-text-cancel");
   const quickForm = $("#argus-quick-form");
   const quickTitle = $("#argus-quick-title");
   const quickDescription = $("#argus-quick-description");
@@ -163,6 +245,8 @@
   const quickPriorityLabel = $("#argus-quick-priority-label");
   const quickSubmit = $("#argus-quick-submit");
   const quickStatus = $("#argus-quick-status");
+  const quickSummary = $("#argus-quick-summary");
+  const quickCancel = $("#argus-quick-cancel");
   const stagedList = $("#argus-staged-list");
   const stagedCount = $("#argus-staged-count");
   const addMoreBtn = $("#argus-add-more");
@@ -186,6 +270,32 @@
   let lastCapture = null;
   let stagedCaptures = [];
   let busy = false;
+  let activeMode = "default";
+
+  function isFormOpen() {
+    return activeMode === "text" || activeMode === "quick";
+  }
+
+  /**
+   * Area snip is the default mode. Quick submit and Text report take over the
+   * action area until the user cancels back to area snip (or submits).
+   */
+  function setMode(mode) {
+    activeMode = mode;
+    defaultActions.hidden = mode !== "default";
+    textForm.hidden = mode !== "text";
+    quickForm.hidden = mode !== "quick";
+    buttons.text.className = `argus-action${mode === "text" ? " is-active" : ""}`;
+    buttons.quick.className = `argus-action${mode === "quick" ? " is-active" : ""}`;
+    if (mode === "text") {
+      textTitle.focus();
+    } else if (mode === "quick") {
+      quickTitle.focus();
+    } else {
+      setTextStatus("");
+      setQuickStatus("");
+    }
+  }
 
   function setStatus(message, tone = "") {
     status.textContent = message;
@@ -660,10 +770,11 @@
   }
 
   function renderPreview(capture) {
+    preview.hidden = false;
     preview.replaceChildren();
 
     const summary = document.createElement("p");
-    summary.className = "argus-status ok";
+    summary.className = "argus-preview-meta";
     summary.textContent = `${capture.width} × ${capture.height} px · DPR ${capture.devicePixelRatio}${
       capture.mode === "full_page" ? " · full page" : ""
     }`;
@@ -678,21 +789,28 @@
     steps.hidden = true;
     steps.replaceChildren();
     setDispatchStatus("");
-    updateCaptureButtons();
+    // Re-render the gallery so the newest capture appears as a thumbnail too.
+    renderStagedCaptures();
   }
 
-  function clearPreview(message = "No capture yet.") {
+  function clearPreview(message = "") {
     lastCapture = null;
     preview.replaceChildren();
-    const note = document.createElement("p");
-    note.className = "argus-muted";
-    note.textContent = message;
-    preview.append(note);
+    const hasCaptures = totalCaptureCount() > 0;
+    // When thumbnails already exist there is nothing useful to say in the
+    // large preview slot; hide it instead of showing "No capture yet".
+    preview.hidden = !message && hasCaptures;
+    if (!preview.hidden) {
+      const note = document.createElement("p");
+      note.className = "argus-empty";
+      note.textContent = message || "No capture yet.";
+      preview.append(note);
+    }
     actions.hidden = true;
     steps.hidden = true;
     steps.replaceChildren();
     setDispatchStatus("");
-    updateCaptureButtons();
+    renderStagedCaptures();
   }
 
   function captureTitle(capture) {
@@ -704,8 +822,30 @@
     );
   }
 
+  /**
+   * Every capture that belongs to the current issue, in visual order: the
+   * screenshots staged with Add to issue first, then the latest capture. The
+   * latest capture is deliberately included so the gallery always shows all
+   * attached images, not only the ones that were explicitly staged.
+   */
+  function allCaptures() {
+    const entries = stagedCaptures.map((capture, stagedIndex) => ({
+      capture,
+      stagedIndex,
+      isCurrent: false,
+    }));
+    if (lastCapture) {
+      entries.push({
+        capture: lastCapture,
+        stagedIndex: -1,
+        isCurrent: true,
+      });
+    }
+    return entries;
+  }
+
   function totalCaptureCount() {
-    return stagedCaptures.length + (lastCapture ? 1 : 0);
+    return allCaptures().length;
   }
 
   function updateCaptureButtons() {
@@ -719,57 +859,79 @@
     buttons.use.disabled = busy || !alive;
     buttons.discard.disabled = busy || !alive;
 
-    stagedCount.textContent = String(stagedCaptures.length);
+    stagedCount.textContent = String(total);
     addMoreBtn.disabled =
       busy || !alive || !isConfigured(settings) || !isPageCapturable();
-    createStagedBtn.hidden = stagedCaptures.length === 0;
+    createStagedBtn.hidden = total === 0;
     createStagedBtn.disabled = total === 0 || busy || !alive;
     createStagedBtn.textContent = `Create issue with ${total} screenshot${
       total === 1 ? "" : "s"
     }`;
-    clearStagedBtn.hidden = stagedCaptures.length === 0;
+    clearStagedBtn.hidden = total === 0;
     clearStagedBtn.disabled = busy || !alive;
     quickSubmit.disabled = total === 0 || busy || !alive;
+    quickSummary.textContent =
+      total === 0
+        ? "Capture a screenshot first, or use Text report instead."
+        : `Submitting ${total} screenshot${
+            total === 1 ? "" : "s"
+          } without annotation.`;
+  }
+
+  function removeStagedCapture(stagedIndex) {
+    stagedCaptures = stagedCaptures.filter((_, index) => index !== stagedIndex);
+    void persistStagedCaptures();
+    renderStagedCaptures();
   }
 
   function renderStagedCaptures() {
     stagedList.replaceChildren();
+    const entries = allCaptures();
 
-    if (stagedCaptures.length === 0) {
+    if (entries.length === 0) {
       const empty = document.createElement("p");
-      empty.className = "argus-muted";
+      empty.className = "argus-empty";
       empty.textContent =
-        "No screenshots staged yet. Capture one, then choose Add to issue to keep it on this issue.";
+        "No screenshots yet. Start with Area snip, then add more here.";
       stagedList.append(empty);
     }
 
-    stagedCaptures.forEach((capture, index) => {
+    entries.forEach((entry, index) => {
       const item = document.createElement("div");
-      item.className = "argus-staged-item";
+      item.className = `argus-thumb${entry.isCurrent ? " is-current" : ""}`;
+      item.title = captureTitle(entry.capture);
 
       const image = document.createElement("img");
-      image.src = capture.dataUrl;
-      image.alt = `Staged capture ${index + 1}`;
+      image.src = entry.capture.dataUrl;
+      image.alt = `Capture ${index + 1}: ${captureTitle(entry.capture)}`;
 
       const label = document.createElement("span");
-      label.className = "argus-staged-label";
-      label.textContent = `#${index + 1} · ${captureTitle(capture)}`;
+      label.className = "argus-thumb-index";
+      label.textContent = `#${index + 1}`;
 
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.className = "argus-staged-remove";
+      remove.className = "argus-thumb-remove";
       remove.title = "Remove this screenshot";
       remove.setAttribute("aria-label", `Remove screenshot ${index + 1}`);
       remove.textContent = "×";
       remove.addEventListener("click", () => {
-        stagedCaptures = stagedCaptures.filter(
-          (_, captureIndex) => captureIndex !== index,
-        );
-        void persistStagedCaptures();
-        renderStagedCaptures();
+        if (entry.isCurrent) {
+          clearPreview(`Removed capture #${index + 1}.`);
+          return;
+        }
+        removeStagedCapture(entry.stagedIndex);
       });
 
       item.append(image, label, remove);
+
+      if (entry.isCurrent) {
+        const badge = document.createElement("span");
+        badge.className = "argus-thumb-badge";
+        badge.textContent = "New";
+        item.append(badge);
+      }
+
       stagedList.append(item);
     });
 
@@ -812,7 +974,7 @@
   function clearStagedCaptures() {
     stagedCaptures = [];
     void persistStagedCaptures();
-    renderStagedCaptures();
+    clearPreview("All captures cleared.");
   }
 
   /**
@@ -824,13 +986,11 @@
     stagedCaptures = [];
     void persistStagedCaptures();
     lastCapture = null;
-    textForm.hidden = true;
     textTitle.value = "";
     textDescription.value = "";
     textPriority.value = "50";
     updatePriorityLabel();
     setTextStatus("");
-    quickForm.hidden = true;
     quickTitle.value = "";
     quickDescription.value = "";
     quickPriority.value = "50";
@@ -841,8 +1001,8 @@
     steps.replaceChildren();
     diagnostics.hidden = true;
     diagnostics.replaceChildren();
+    setMode("default");
     clearPreview();
-    renderStagedCaptures();
     if (message) {
       setStatus(message, "ok");
     }
@@ -1284,6 +1444,7 @@
 
   function showPopup() {
     popup.hidden = false;
+    fab.setAttribute("aria-expanded", "true");
     void refresh().catch(() => {
       setStatus("Unable to read extension settings.", "error");
     });
@@ -1291,6 +1452,7 @@
 
   function hidePopup() {
     popup.hidden = true;
+    fab.setAttribute("aria-expanded", "false");
   }
 
   function togglePopup() {
@@ -1311,16 +1473,16 @@
     void captureFullPage();
   });
   buttons.text.addEventListener("click", () => {
-    textForm.hidden = !textForm.hidden;
-    if (!textForm.hidden) {
-      textTitle.focus();
-    }
+    setMode(activeMode === "text" ? "default" : "text");
   });
   buttons.quick.addEventListener("click", () => {
-    quickForm.hidden = !quickForm.hidden;
-    if (!quickForm.hidden) {
-      quickTitle.focus();
-    }
+    setMode(activeMode === "quick" ? "default" : "quick");
+  });
+  textCancel.addEventListener("click", () => {
+    setMode("default");
+  });
+  quickCancel.addEventListener("click", () => {
+    setMode("default");
   });
   buttons.harvest.addEventListener("click", () => {
     void harvest();
@@ -1356,7 +1518,17 @@
   });
 
   const onEscape = (event) => {
-    if (event.key === "Escape" && !popup.hidden) {
+    if (event.key !== "Escape") {
+      return;
+    }
+    // Escape first backs out of a report form to area snip, then closes the
+    // popup on the next press.
+    if (isFormOpen()) {
+      event.preventDefault();
+      setMode("default");
+      return;
+    }
+    if (!popup.hidden) {
       hidePopup();
     }
   };
@@ -1412,6 +1584,7 @@
 
   updatePriorityLabel();
   updateQuickPriorityLabel();
+  setMode("default");
   clearPreview();
   renderStagedCaptures();
 
@@ -1423,11 +1596,12 @@
         if (Array.isArray(stored?.["argus.stagedCaptures"])) {
           stagedCaptures = stored["argus.stagedCaptures"];
         }
-        renderStagedCaptures();
+        // Recompute the empty preview state now that staged captures exist.
+        clearPreview();
       })
       .catch(() => {
         // Session storage may be unavailable; keep the in-memory list.
-        renderStagedCaptures();
+        clearPreview();
       });
   }
 })();
