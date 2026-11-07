@@ -1,0 +1,247 @@
+/*
+ * ARGUS overlay styles.
+ *
+ * This file is injected through manifest.json content_scripts.css and through
+ * chrome.scripting.insertCSS for the toolbar fallback. It deliberately is NOT
+ * a <style> element created by the content script: page CSP (style-src) can
+ * block those, which made the floating button invisible on most sites.
+ */
+
+#argus-overlay {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #e2e8f0;
+}
+
+#argus-overlay .argus-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #22d3ee;
+  background: #0f172a;
+  color: #22d3ee;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#argus-overlay .argus-popup {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  margin-bottom: 10px;
+}
+
+#argus-overlay .argus-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #1e293b;
+}
+
+#argus-overlay .argus-popup-title {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #22d3ee;
+  font-weight: 600;
+}
+
+#argus-overlay .argus-close {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#argus-overlay .argus-body {
+  padding: 12px 14px;
+}
+
+#argus-overlay .argus-status {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #1e293b;
+  margin: 0 0 10px;
+}
+
+#argus-overlay .argus-status.ok {
+  color: #4ade80;
+}
+
+#argus-overlay .argus-status.warn {
+  color: #fbbf24;
+}
+
+#argus-overlay .argus-status.error {
+  color: #fca5a5;
+}
+
+#argus-overlay .argus-btn {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+
+#argus-overlay .argus-btn.primary {
+  background: #06b6d4;
+  border-color: #06b6d4;
+  color: #020617;
+  font-weight: 600;
+}
+
+#argus-overlay .argus-btn.ghost {
+  background: transparent;
+}
+
+#argus-overlay .argus-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#argus-overlay .argus-muted {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 8px 0 0;
+}
+
+#argus-overlay .argus-preview img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  margin-top: 8px;
+}
+
+#argus-overlay .argus-capture-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#argus-overlay .argus-capture-actions .argus-btn {
+  margin: 0;
+  flex: 1;
+}
+
+#argus-overlay .argus-steps {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+#argus-overlay .argus-steps li {
+  margin: 2px 0;
+}
+
+#argus-overlay .argus-steps li.active {
+  color: #22d3ee;
+}
+
+#argus-overlay .argus-steps li.done {
+  color: #4ade80;
+}
+
+#argus-overlay .argus-steps li.error {
+  color: #fca5a5;
+}
+
+#argus-overlay .argus-field {
+  margin: 8px 0;
+}
+
+#argus-overlay .argus-field label {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+#argus-overlay .argus-field input[type="text"],
+#argus-overlay .argus-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #020617;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 7px 8px;
+  font: 12px ui-sans-serif, system-ui, sans-serif;
+}
+
+#argus-overlay .argus-field textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+#argus-overlay .argus-field input[type="range"] {
+  width: 100%;
+}
+
+#argus-overlay .argus-priority {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+#argus-overlay .argus-diagnostics {
+  font-size: 11px;
+  color: #cbd5e1;
+  margin-top: 8px;
+  border-top: 1px solid #1e293b;
+  padding-top: 8px;
+}
+
+#argus-overlay .argus-diagnostics dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 6px 0;
+}
+
+#argus-overlay .argus-diagnostics dt {
+  color: #94a3b8;
+}
+
+#argus-overlay .argus-diagnostics dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+#argus-overlay .argus-diagnostics ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  max-height: 150px;
+  overflow: auto;
+}
+
+#argus-overlay a.argus-link {
+  color: #22d3ee;
+  font-size: 12px;
+  word-break: break-all;
+}

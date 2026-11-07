@@ -1,6 +1,15 @@
 // ARGUS overlay controller (runs in the service worker).
 // A floating icon is injected on every http(s) page; clicking it opens the
 // compact capture popup over the page. No side panel is opened.
+//
+// The popup is a content script and therefore cannot call privileged chrome
+// APIs (captureVisibleTab, scripting, tabs) or make CORS-safe cross-origin
+// requests. It delegates those operations here over chrome.runtime messages.
+
+import { isConfigured, loadSettings } from "./shared/config.js";
+import { dispatchCapture } from "./shared/dispatch.js";
+import { submitTextReport } from "./shared/text-report.js";
+import { createMessageHandler } from "./shared/background-handlers.js";
 
 function isCapturableUrl(url) {
   if (!url) return false;
@@ -9,6 +18,46 @@ function isCapturableUrl(url) {
     return scheme === "http" || scheme === "https";
   } catch {
     return false;
+  }
+}
+
+async function getSnapshot(tabId) {
+  if (!tabId) {
+    return null;
+  }
+
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    world: "MAIN",
+    files: ["content/harvester.js"],
+  });
+
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    world: "MAIN",
+    func: () => globalThis.__ARGUS_HARVEST__?.snapshot() ?? null,
+  });
+
+  return results?.[0]?.result ?? null;
+}
+
+async function openOverlay(tabId) {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "ARGUS_TOGGLE_OVERLAY" });
+  } catch {
+    // No content script yet (e.g. a page loaded before install/reload):
+    // insert the stylesheet explicitly, since a <style> element created by the
+    // script would be blocked by page CSP on most sites.
+    await chrome.scripting
+      .insertCSS({
+        target: { tabId },
+        files: ["content/overlay.css"],
+      })
+      .catch(() => {});
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["content/overlay.js"],
+    });
   }
 }
 
@@ -32,17 +81,39 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 
   try {
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content/overlay.js"],
-    });
+    await openOverlay(tab.id);
   } catch {
-    // Injected overlay handles its own errors; nothing to do here.
+    // The injected overlay handles its own errors; nothing to do here.
   }
 });
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type === "ARGUS_CAPTURE_REQUEST") {
-    chrome.runtime.sendMessage(message);
+const handleMessage = createMessageHandler({
+  loadSettings,
+  isConfigured,
+  captureVisible: (tab) =>
+    chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }),
+  getSnapshot,
+  openOptions: () => chrome.runtime.openOptionsPage(),
+  createTab: (url) => chrome.tabs.create({ url }),
+  dispatchCapture,
+  submitTextReport,
+  fetchImpl: fetch,
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (typeof message?.type !== "string" || !message.type.startsWith("ARGUS_")) {
+    return undefined;
   }
+
+  handleMessage(message, sender).then(
+    (result) => sendResponse(result),
+    (error) =>
+      sendResponse({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+  );
+
+  // Keep the message channel open for the async response.
+  return true;
 });

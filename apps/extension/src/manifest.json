@@ -8,12 +8,20 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["content/overlay.css"],
+      "js": ["content/overlay.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
-    "default_title": "ARGUS QA Capture — click to open the overlay popup"
+    "default_title": "ARGUS QA Capture - click to open the overlay popup"
   },
   "options_ui": {
     "page": "options.html",

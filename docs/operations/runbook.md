@@ -283,7 +283,8 @@ npm run build
 
 1. Open `chrome://extensions`, enable **Developer mode**, choose **Load
    unpacked**, select `apps/extension/dist`.
-2. Click the ARGUS toolbar icon to open the side panel.
+2. Open any http(s) page and click the floating **A** to open the capture
+   overlay (the toolbar icon toggles the same popup).
 3. Open **Settings** and enter:
    - App base URL: `https://app.argus.example.com` (or `http://localhost:3000`).
    - CDN base URL: `https://cdn.argus.example.com` (or `http://127.0.0.1:8080`).
@@ -436,8 +437,9 @@ manually because real Chrome extension automation is out of scope.
 
 - [ ] `npm run ext:check && npm run ext:build` pass.
 - [ ] Load `apps/extension/dist` unpacked; no manifest errors.
-- [ ] Settings persist after closing and reopening the side panel.
-- [ ] Toolbar click opens the side panel.
+- [ ] Settings persist after closing and reopening the overlay popup.
+- [ ] Toolbar click and the floating **A** both toggle the overlay popup.
+- [ ] **⚙ Settings** in the popup opens the options page and saves values.
 - [ ] **Harvest now** shows URL, title, viewport, screen, DPR, OS and console
       entries.
 - [ ] Area snip crops the selected rectangle at the correct pixel size.

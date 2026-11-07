@@ -120,10 +120,16 @@ annotation (pen, shape, text, or redaction), then submit. The issue becomes
 
 ### 6. (Optional) The Chrome extension
 
-The extension is a Chrome side panel that takes screenshots and sends them
-into this same pipeline. If you load it, set its App URL to the
-**http://localhost:13130** address and its CDN URL to the
-**http://127.0.0.1:18130** address. If you can't remember the tokens or
+The extension adds a floating **A** button to every web page. Click it (or the
+toolbar icon) to open the capture popup: **Area snip**, **Full page**,
+**Text-only report** and **Harvest now** all work from that popup. Screenshots
+go into this same pipeline: choose **Use this screenshot** to upload the raw
+image and open the canvas editor.
+
+Load it from `apps\extension\dist` (run `npm run build` in
+`apps\extension` first). Set its App URL to **http://localhost:13130** and its
+CDN URL to **http://127.0.0.1:18130** — click **⚙ Settings** inside the
+floating popup to open the form. If you can't remember the tokens or
 project ID after a reinstall, open the **⚙ Configurations** button in the
 dashboard header — it shows every extension setting for the active project
 with a **Copy** button beside each value. Paste those into the extension

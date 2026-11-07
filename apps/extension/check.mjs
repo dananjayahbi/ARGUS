@@ -28,33 +28,52 @@ if (manifest.manifest_version !== 3) {
   errors.push("manifest_version must be 3");
 }
 
-for (const permission of ["sidePanel", "activeTab", "scripting", "storage"]) {
+for (const permission of ["activeTab", "scripting", "storage"]) {
   if (!manifest.permissions?.includes(permission)) {
     errors.push(`missing permission: ${permission}`);
   }
 }
 
+if (!manifest.host_permissions?.includes("<all_urls>")) {
+  errors.push("host_permissions must include <all_urls>");
+}
+
+if (!manifest.content_scripts?.some((cs) => cs.js?.includes("content/overlay.js"))) {
+  errors.push("content_scripts must inject content/overlay.js on all pages");
+}
+
+if (
+  !manifest.content_scripts?.some((cs) =>
+    cs.css?.includes("content/overlay.css"),
+  )
+) {
+  errors.push(
+    "content_scripts must inject content/overlay.css so the overlay survives page CSP",
+  );
+}
+
 for (const file of [
   "background.js",
-  "sidepanel.html",
-  "sidepanel.js",
   "options.html",
   "options.js",
   "shared/config.js",
+  "shared/background-handlers.js",
   "shared/capture.js",
   "shared/dispatch.js",
   "shared/text-report.js",
   "content/harvester.js",
   "content/snip-overlay.js",
   "content/fullpage.js",
+  "content/overlay.css",
+  "content/overlay.js",
 ]) {
   if (!existsSync(path.join(source, file))) {
     errors.push(`missing file: ${file}`);
   }
 }
 
-if (manifest.side_panel?.default_path !== "sidepanel.html") {
-  errors.push("side_panel.default_path must be sidepanel.html");
+if (manifest.side_panel?.default_path === "sidepanel.html") {
+  errors.push("side_panel must be removed for the overlay approach");
 }
 
 if (manifest.background?.service_worker !== "background.js") {
@@ -81,6 +100,13 @@ if (
   /cdnToken:\s*"[^"]+"/.test(config)
 ) {
   errors.push("shared/config.js must not contain a non-empty default token");
+}
+
+const overlay = readFileSync(path.join(source, "content", "overlay.js"), "utf8");
+if (overlay.includes('createElement("style")')) {
+  errors.push(
+    "content/overlay.js must not inject a <style> element; use the declared CSS file so page CSP cannot hide the overlay",
+  );
 }
 
 if (errors.length > 0) {

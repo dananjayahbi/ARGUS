@@ -501,8 +501,9 @@ async function captureArea() {
     lastCapture = capture;
     await chrome.storage.session.set({ "argus.lastCapture": capture });
     renderCapture(capture);
-  } catch (error) {
-    capturePreview.textContent = describeCaptureError(error, tab.url);
+  } catch {
+    capturePreview.textContent =
+      "Unable to capture this page. The extension may need reloading (chrome://extensions > Reload), then reload this page. Chrome cannot capture chrome://, extension, or other privileged pages.";
   }
 }
 

@@ -1,6 +1,6 @@
 # ARGUS Chrome extension (Manifest V3)
 
-Side-panel capture extension for the ARGUS QA workflow.
+In-page capture overlay for the ARGUS QA workflow.
 
 ## Build
 
@@ -17,11 +17,15 @@ The loadable extension is written to `dist/`. `dist/` is gitignored.
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
-3. Choose **Load unpacked** and select `apps/extension/dist`.
-4. Click the ARGUS toolbar icon to open the side panel.
-5. Open **Settings** and enter:
-   - **App base URL**: `http://localhost:13130`
-   - **CDN base URL**: `http://127.0.0.1:18130`
+3. Choose **Load unpacked** and select `apps/extension/dist`. (If you
+   previously loaded an older build, click **Reload** on the ARGUS entry so
+   the new `<all_urls>` permission and overlay content script take effect,
+   then reload the test page itself.)
+4. Any open http(s) web page now shows a floating **A** icon at the
+   bottom-right corner. Click it to open the overlay popup (no page push,
+   no layout shift). Click the toolbar icon for the same popup.
+5. Open **Settings** and enter the five values (defaults already point at
+   `http://localhost:13130` and `http://127.0.0.1:18130`):
    - **Workspace ingestion token**: `WORKSPACE_TOKEN` from `apps/web/.env.local`
    - **CDN upload token**: `CDN_AUTH_TOKEN` from `apps/cdn/.env`
    - **Project ID**: the UUID of the ARGUS project row
@@ -31,34 +35,49 @@ written to source, logged, or included in the build.
 
 ## Current scope
 
-This is the task 1-2 scaffold:
+The overlay is fully wired:
 
-- Manifest V3 with `sidePanel`, `activeTab`, `scripting`, `storage` and host
-  permissions.
-- Service worker opens the side panel from the toolbar action.
+- Manifest V3 with `activeTab`, `scripting`, `storage`, `tabs` and host
+  permissions. There is no side panel.
+- A floating **A** icon is injected on every http(s) page, and the toolbar
+  action toggles the same overlay popup.
+- **⚙ Settings** in the popup opens the options page for the two tokens and
+  the project ID, so configuration is reachable without remembering the
+  toolbar menu.
 - Options page persists the app/CDN URLs, both tokens and the project ID.
-- Side panel shell with capture buttons disabled until the capture engines land.
+- **Area snip** draws a crosshair marquee over the page, captures the tab and
+  crops to the selection at the captured image's pixel scale.
+- **Full page** scrolls and stitches the whole document, hiding fixed/sticky
+  elements after the first frame and restoring the page afterwards.
+- **Text-only report** shows an inline title/description/priority form and
+  creates a `text_only` issue that is finalized straight to Pending.
+- **Harvest now** renders the page metadata and the latest console/network
+  errors inside the popup.
+- **Use this screenshot** uploads the raw PNG to the CDN, creates a draft and
+  opens the canvas editor; **Take another one** discards it with no network
+  calls.
 - Diagnostics harvester injected into the active tab: URL, title, viewport,
   screen, DPR, OS, browser/engine and an ISO-8601 timestamp, plus a rolling
   50-entry buffer of console errors, warnings, unhandled rejections and
   HTTP >= 400 fetch/XHR failures.
-- High-DPI area snip: injects a crosshair overlay, captures the visible tab
-  after the overlay is removed, and crops to the selection using the captured
-  image's pixel scale. Escape cancels; the cropped PNG is cached for dispatch.
-- Preview and dispatch: "Use this screenshot" uploads the raw PNG to the CDN,
-  creates a draft through the app ingestion API with the harvested metadata and
-  console logs, then opens the returned canvas editor URL in a new tab. "Take
-  another one" discards the blob without any network calls. Per-step progress
-  and actionable CDN/ingest errors are shown in the side panel.
-- Text-only report: embedded title, Markdown description, priority slider and
-  project selector. It creates a `text_only` draft, finalizes it directly to
-  `pending` with the harvested environment and console logs, and links to the
-  project board without opening the canvas or uploading an image.
 
 The harvester is injected with `world: "MAIN"` because page `console` and
 `fetch` can only be patched from the page's own JavaScript world. It exposes a
 single `window.__ARGUS_HARVEST__.snapshot()` function and has no extension API
-access; the side panel reads it through `chrome.scripting.executeScript`.
+access; the service worker reads it through `chrome.scripting.executeScript`
+on behalf of the overlay.
+
+Captures and network calls are coordinated by `background.js`
+(`shared/background-handlers.js`): the overlay handles the DOM work (marquee,
+crop, stitch) and asks the service worker for `captureVisibleTab`, the harvest
+snapshot, opening the editor tab, and the CDN/ingest requests. Messages are
+covered by `npm test` (`test-handlers.mjs`).
+
+Overlay styles live in `content/overlay.css` and are declared in
+`manifest.json` (and inserted with `chrome.scripting.insertCSS` for the
+toolbar fallback). Do not inject a `<style>` element from the content script:
+page `style-src` CSP blocks those, which previously made the floating button
+invisible on every site except the CSP-less local app.
 
 ## Security notes
 

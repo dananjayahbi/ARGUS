@@ -214,15 +214,17 @@ npm run build
 # then in chrome://extensions → Developer mode → Load unpacked → apps\extension\dist
 ```
 
-In the side panel **Settings**, use the high ports:
+Click **⚙ Settings** inside the floating popup (or open the extension
+options page), then use the high ports:
 
 - App base URL: `http://localhost:13130`
 - CDN base URL: `http://127.0.0.1:18130`
 - Workspace token / CDN token: same values as `apps\web\.env.local`
 - Project: the ARG project UUID (`psql … -tAc "select id from projects where key='ARG'"`)
 
-Then: Harvest → Area snip → Use this screenshot → annotate in canvas →
-Submit → card appears on the board.
+Then on any http(s) page: click the floating **A** (or the toolbar icon) →
+**Harvest now** → **Area snip** → **Use this screenshot** → annotate in
+canvas → Submit → card appears on the board.
 
 ## 6. Automated gates (great for regression)
 
