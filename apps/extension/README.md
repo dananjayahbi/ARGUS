@@ -33,6 +33,21 @@ The loadable extension is written to `dist/`. `dist/` is gitignored.
 Settings live in `chrome.storage.local` on this machine. Tokens are never
 written to source, logged, or included in the build.
 
+### Reloading the extension
+
+Reloading or updating the extension tears down its APIs inside tabs that are
+already open. Chromium leaves the old content script in place, but
+`chrome.runtime` becomes `undefined`, so it cannot talk to the service worker
+any more. From ARGUS 0.1.1 the overlay detects this and shows
+*"ARGUS lost its connection because the extension was reloaded or updated.
+Refresh this page (F5) to reconnect."* with every capture action disabled —
+refresh the tab once after clicking **Reload** on `chrome://extensions`.
+
+Older builds (0.1.0 and earlier) instead crashed with
+`Uncaught TypeError: Cannot read properties of undefined (reading 'onMessage')`
+in `content/overlay.js`. If that error is still listed, clear it and reload
+the extension from `dist/` built at 0.1.1 or newer.
+
 ## Current scope
 
 The overlay is fully wired:

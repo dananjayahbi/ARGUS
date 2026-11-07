@@ -19,6 +19,35 @@
 
   const MAX_FULL_PAGE_FRAMES = 40;
 
+  // Chrome tears down extension APIs in already-injected content scripts when
+  // the extension is reloaded, updated or disabled. `chrome.runtime` then
+  // becomes undefined, so reading `chrome.runtime.onMessage` throws
+  // "Cannot read properties of undefined (reading 'onMessage')" and the
+  // Extensions page reports it as an uncaught error. Detect the lost context
+  // up front and degrade gracefully with a recovery hint instead of throwing.
+  const CONTEXT_LOST_MESSAGE =
+    "ARGUS lost its connection because the extension was reloaded or updated. Refresh this page (F5) to reconnect.";
+
+  function getChromeApi() {
+    return typeof chrome === "undefined" ? undefined : chrome;
+  }
+
+  function getRuntime() {
+    return getChromeApi()?.runtime;
+  }
+
+  function getSessionStorage() {
+    return getChromeApi()?.storage?.session;
+  }
+
+  function isExtensionAlive() {
+    return Boolean(getRuntime()?.id);
+  }
+
+  function contextLostResult() {
+    return { ok: false, error: CONTEXT_LOST_MESSAGE };
+  }
+
   // Styles come from content/overlay.css, declared in manifest.json and
   // inserted with chrome.scripting for the toolbar fallback. Injecting a
   // <style> element here would be blocked by page CSP on most sites.
@@ -154,15 +183,19 @@
   }
 
   async function send(message) {
+    const runtime = getRuntime();
+    if (!runtime?.sendMessage) {
+      return contextLostResult();
+    }
     try {
-      return await chrome.runtime.sendMessage(message);
+      return await runtime.sendMessage(message);
     } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
       return {
         ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "The extension background service did not respond.",
+        error: /context invalidated/i.test(detail)
+          ? CONTEXT_LOST_MESSAGE
+          : detail || "The extension background service did not respond.",
       };
     }
   }
@@ -172,8 +205,17 @@
   }
 
   async function loadSettings() {
-    const stored = await chrome.storage.local.get("argus.settings.v1");
-    const saved = stored["argus.settings.v1"] ?? {};
+    let saved = {};
+    const localStorageArea = getChromeApi()?.storage?.local;
+    if (localStorageArea?.get) {
+      try {
+        const stored = await localStorageArea.get("argus.settings.v1");
+        saved = stored?.["argus.settings.v1"] ?? {};
+      } catch {
+        // Extension context invalidated: fall back to the defaults so the
+        // popup can still explain what happened.
+      }
+    }
     return {
       appBaseUrl: "http://localhost:13130",
       cdnBaseUrl: "http://127.0.0.1:18130",
@@ -196,6 +238,11 @@
 
   async function refresh() {
     settings = await loadSettings();
+    if (!isExtensionAlive()) {
+      setStatus(CONTEXT_LOST_MESSAGE, "warn");
+      applyButtonState();
+      return settings;
+    }
     const configured = isConfigured(settings);
     const capturable = isPageCapturable();
 
@@ -219,12 +266,13 @@
   }
 
   function applyButtonState() {
+    const alive = isExtensionAlive();
     const configured = isConfigured(settings);
     const capturable = isPageCapturable();
-    buttons.area.disabled = !configured || !capturable;
-    buttons.full.disabled = !configured || !capturable;
-    buttons.text.disabled = !configured;
-    buttons.harvest.disabled = false;
+    buttons.area.disabled = !alive || !configured || !capturable;
+    buttons.full.disabled = !alive || !configured || !capturable;
+    buttons.text.disabled = !alive || !configured;
+    buttons.harvest.disabled = !alive;
     updateCaptureButtons();
   }
 
@@ -627,24 +675,25 @@
 
   function updateCaptureButtons() {
     const total = totalCaptureCount();
+    const alive = isExtensionAlive();
 
     buttons.use.textContent =
       total > 1 ? `Use ${total} screenshots` : "Use this screenshot";
-    buttons.add.disabled = !lastCapture || busy;
+    buttons.add.disabled = !lastCapture || busy || !alive;
     buttons.add.hidden = !lastCapture;
-    buttons.use.disabled = busy;
-    buttons.discard.disabled = busy;
+    buttons.use.disabled = busy || !alive;
+    buttons.discard.disabled = busy || !alive;
 
     stagedCount.textContent = String(stagedCaptures.length);
     addMoreBtn.disabled =
-      busy || !isConfigured(settings) || !isPageCapturable();
+      busy || !alive || !isConfigured(settings) || !isPageCapturable();
     createStagedBtn.hidden = stagedCaptures.length === 0;
-    createStagedBtn.disabled = total === 0 || busy;
+    createStagedBtn.disabled = total === 0 || busy || !alive;
     createStagedBtn.textContent = `Create issue with ${total} screenshot${
       total === 1 ? "" : "s"
     }`;
     clearStagedBtn.hidden = stagedCaptures.length === 0;
-    clearStagedBtn.disabled = busy;
+    clearStagedBtn.disabled = busy || !alive;
   }
 
   function renderStagedCaptures() {
@@ -692,8 +741,12 @@
   }
 
   async function persistStagedCaptures() {
+    const session = getSessionStorage();
+    if (!session?.set) {
+      return;
+    }
     try {
-      await chrome.storage.session.set({
+      await session.set({
         "argus.stagedCaptures": stagedCaptures,
       });
     } catch {
@@ -1177,12 +1230,17 @@
   };
 
   document.addEventListener("keydown", onEscape);
-  chrome.runtime.onMessage.addListener(onRuntimeMessage);
+  try {
+    getRuntime()?.onMessage?.addListener?.(onRuntimeMessage);
+  } catch {
+    // The extension context was invalidated before the overlay loaded; the
+    // popup shows a reconnect hint and every action stays disabled.
+  }
 
   function destroy() {
     document.removeEventListener("keydown", onEscape);
     try {
-      chrome.runtime.onMessage.removeListener(onRuntimeMessage);
+      getRuntime()?.onMessage?.removeListener?.(onRuntimeMessage);
     } catch {
       // The extension context may already be invalidated.
     }
@@ -1202,16 +1260,19 @@
   clearPreview();
   renderStagedCaptures();
 
-  chrome.storage.session
-    .get("argus.stagedCaptures")
-    .then((stored) => {
-      if (Array.isArray(stored["argus.stagedCaptures"])) {
-        stagedCaptures = stored["argus.stagedCaptures"];
-      }
-      renderStagedCaptures();
-    })
-    .catch(() => {
-      // Session storage may be unavailable; keep the in-memory list.
-      renderStagedCaptures();
-    });
+  const sessionStorageArea = getSessionStorage();
+  if (sessionStorageArea?.get) {
+    sessionStorageArea
+      .get("argus.stagedCaptures")
+      .then((stored) => {
+        if (Array.isArray(stored?.["argus.stagedCaptures"])) {
+          stagedCaptures = stored["argus.stagedCaptures"];
+        }
+        renderStagedCaptures();
+      })
+      .catch(() => {
+        // Session storage may be unavailable; keep the in-memory list.
+        renderStagedCaptures();
+      });
+  }
 })();

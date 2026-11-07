@@ -124,6 +124,32 @@ for (const marker of [
   }
 }
 
+// Bug #1: after the extension is reloaded/updated, chromium tears down the
+// extension APIs in content scripts that are already in a page. `chrome.runtime`
+// becomes undefined and any direct access crashes with
+// "Cannot read properties of undefined (reading 'onMessage')".
+for (const forbidden of [
+  "chrome.runtime.onMessage.addListener",
+  "chrome.runtime.sendMessage",
+  "chrome.storage.local.get",
+  "chrome.storage.session.get",
+  "chrome.storage.session.set",
+]) {
+  if (overlay.includes(forbidden)) {
+    errors.push(
+      `content/overlay.js must guard extension APIs before use; found direct call ${forbidden}`,
+    );
+  }
+}
+
+for (const guard of ["CONTEXT_LOST_MESSAGE", "function isExtensionAlive()"]) {
+  if (!overlay.includes(guard)) {
+    errors.push(
+      `content/overlay.js is missing the extension-context guard: ${guard}`,
+    );
+  }
+}
+
 if (
   !/function applyButtonState\(\)[\s\S]{0,400}updateCaptureButtons\(\)/.test(
     overlay,

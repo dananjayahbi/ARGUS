@@ -1,12 +1,12 @@
 {
   "name": "@argus/extension",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
     "check": "node check.mjs",
-    "test": "node test-dispatch.mjs && node test-text-report.mjs && node test-handlers.mjs",
+    "test": "node test-dispatch.mjs && node test-text-report.mjs && node test-handlers.mjs && node test-overlay-runtime.mjs",
     "lint": "node check.mjs"
   }
 }
