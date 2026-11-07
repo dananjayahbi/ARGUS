@@ -9,7 +9,7 @@ export function priorityTier(priority: number): PriorityTier {
     return {
       label: "Low / Cosmetic",
       range: "0–25%",
-      tone: "text-slate-300",
+      tone: "text-ink-soft",
     };
   }
 
@@ -17,7 +17,7 @@ export function priorityTier(priority: number): PriorityTier {
     return {
       label: "Medium / Functional Flaw",
       range: "26–50%",
-      tone: "text-cyan-300",
+      tone: "text-teal",
     };
   }
 
@@ -25,13 +25,13 @@ export function priorityTier(priority: number): PriorityTier {
     return {
       label: "High / Flow Blocked",
       range: "51–75%",
-      tone: "text-amber-300",
+      tone: "text-accent-strong",
     };
   }
 
   return {
     label: "Critical / System Blocker / Data Loss",
     range: "76–100%",
-    tone: "text-rose-300",
+    tone: "text-bad",
   };
 }

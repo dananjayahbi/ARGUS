@@ -12,7 +12,7 @@ interface ExtensionConfig {
 }
 
 const inputClass =
-  "w-full min-w-0 flex-1 truncate rounded-md border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100";
+  "w-full min-w-0 flex-1 truncate rounded-md border border-line-strong bg-cream px-3 py-2 font-mono text-xs text-ink";
 
 function ConfigRow({
   label,
@@ -27,13 +27,13 @@ function ConfigRow({
 }) {
   return (
     <div className="space-y-1">
-      <label className="block text-xs text-slate-400">{label}</label>
+      <label className="block text-xs text-muted">{label}</label>
       <div className="flex items-center gap-2">
         <input readOnly value={value} className={inputClass} />
         <button
           type="button"
           onClick={onCopy}
-          className="shrink-0 rounded-md border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
+          className="shrink-0 rounded-md border border-line-strong px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-paper-2"
         >
           {copied ? "Copied" : "Copy"}
         </button>
@@ -124,14 +124,14 @@ export function ConfigurationsButton({
           setCopiedField(null);
           setOpen(true);
         }}
-        className="rounded-md border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
+        className="rounded-lg border border-cream/30 px-3 py-1.5 text-xs font-semibold text-cream transition hover:bg-cream/10"
       >
         ⚙ Configurations
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4"
+          className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4"
           onClick={() => setOpen(false)}
         >
           <div
@@ -139,17 +139,17 @@ export function ConfigurationsButton({
             aria-modal="true"
             aria-label="Extension configuration"
             onClick={(event) => event.stopPropagation()}
-            className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-xl border border-line-strong bg-paper p-6 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal">
                   Configurations
                 </p>
-                <h2 className="mt-2 text-lg font-semibold text-slate-50">
+                <h2 className="mt-2 text-lg font-semibold text-ink">
                   Extension settings
                 </h2>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted">
                   Copy these into the ARGUS extension Settings (Chrome
                   extensions → ARGUS → Settings). Tokens stay in your browser
                   extension storage.
@@ -158,20 +158,20 @@ export function ConfigurationsButton({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
+                className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-soft transition hover:bg-paper-2"
               >
                 Close
               </button>
             </div>
 
             {error ? (
-              <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+              <p className="rounded-md border border-bad/30 bg-bad/10 p-3 text-sm text-bad">
                 {error}
               </p>
             ) : null}
 
             {!config && !error ? (
-              <p className="text-sm text-slate-400">Loading…</p>
+              <p className="text-sm text-muted">Loading…</p>
             ) : null}
 
             {config ? (
@@ -204,13 +204,13 @@ export function ConfigurationsButton({
                 />
 
                 <div className="space-y-1">
-                  <label className="block text-xs text-slate-400">
+                  <label className="block text-xs text-muted">
                     Project
                   </label>
                   <select
                     value={selectedKey}
                     onChange={(event) => setManualKey(event.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+                    className="w-full rounded-md border border-line-strong bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-teal"
                   >
                     <option value="">Select project…</option>
                     {projectOptions.map((project) => (
@@ -228,7 +228,7 @@ export function ConfigurationsButton({
                   onCopy={() => void copyField("projectId", activeProjectId)}
                 />
 
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-muted">
                   Paste each value into the matching extension field, then
                   click Save settings. Tokens are only shown to signed-in
                   dashboard users.

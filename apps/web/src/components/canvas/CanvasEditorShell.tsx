@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -31,7 +32,7 @@ const CanvasStage = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="grid h-full place-items-center text-sm text-slate-500">
+      <div className="grid h-full place-items-center text-sm text-muted">
         Loading canvas…
       </div>
     ),
@@ -87,7 +88,7 @@ export function CanvasEditorShell({
   const [activeTool, setActiveTool] = useState<CanvasTool>("select");
   const [scene, setScene] = useState<CanvasScene>(initialCanvas.scene);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [penColor, setPenColor] = useState("#f43f5e");
+  const [penColor, setPenColor] = useState("#d08a43");
   const [penWidth, setPenWidth] = useState(3);
   const [blurMethod, setBlurMethod] = useState<"pixelate" | "blur">("pixelate");
   const [blurStrength, setBlurStrength] = useState(12);
@@ -687,19 +688,27 @@ export function CanvasEditorShell({
   }, [deletingDraft, issue.id, token]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-slate-100">
-      <header className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-3">
+    <div className="flex h-screen flex-col overflow-hidden bg-cream text-ink">
+      <header className="flex shrink-0 items-center justify-between border-b border-teal-hover bg-teal px-6 py-3 text-cream">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-medium uppercase tracking-[0.3em] text-cyan-400">
+          <Image
+            src="/argus-logo.png"
+            alt=""
+            width={28}
+            height={28}
+            priority
+            className="rounded-full"
+          />
+          <span className="text-sm font-bold tracking-[0.16em] text-cream">
             ARGUS
           </span>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-teal-tint">
             {issue.project_name} · {issue.project_key}-{issue.issue_number}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500">
-            Tool: <span className="text-slate-300">{effectiveTool}</span>
+          <span className="text-xs text-teal-tint">
+            Tool: <span className="font-semibold text-cream">{effectiveTool}</span>
           </span>
           <button
             type="button"
@@ -707,18 +716,18 @@ export function CanvasEditorShell({
               setConfirmDeleteDraft(true);
               setDeleteDraftError(null);
             }}
-            className="rounded-md border border-rose-500/40 px-2 py-1 text-xs font-medium text-rose-200 transition hover:bg-rose-500/10"
+            className="rounded-lg border border-accent/70 px-2 py-1 text-xs font-semibold text-accent transition hover:bg-accent/15"
           >
             Delete draft
           </button>
-          <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300">
+          <span className="rounded-full border border-accent bg-accent px-3 py-1 text-xs font-bold text-ink">
             Draft
           </span>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="w-56 shrink-0 border-r border-slate-800 bg-slate-950 lg:w-64">
+        <aside className="w-56 shrink-0 border-r border-line bg-cream lg:w-64">
           <CaptureImagePanel
             images={captureImages}
             activeUrl={backgroundUrl}
@@ -726,7 +735,7 @@ export function CanvasEditorShell({
           />
         </aside>
 
-        <section className="relative min-w-0 flex-1 bg-slate-900">
+        <section className="relative min-w-0 flex-1 bg-paper">
           <CanvasStage
             imageUrl={backgroundUrl}
             viewport={viewport}
@@ -747,7 +756,7 @@ export function CanvasEditorShell({
             registerFlatten={handleRegisterFlatten}
           />
 
-          <div className="absolute left-4 top-4 z-10 flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950/90 p-1 shadow-lg">
+          <div className="absolute left-4 top-4 z-10 flex items-center gap-1 rounded-lg border border-line-strong bg-cream/90 p-1 shadow-lg">
             {TOOLS.map((tool) => (
               <button
                 key={tool.id}
@@ -763,8 +772,8 @@ export function CanvasEditorShell({
                 }}
                 className={`grid h-8 w-8 place-items-center rounded-md transition ${
                   activeTool === tool.id
-                    ? "bg-cyan-500 text-slate-950"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+                    ? "bg-teal text-cream"
+                    : "text-muted hover:bg-paper-2 hover:text-ink"
                 }`}
               >
                 <CanvasToolIcon tool={tool.id} />
@@ -772,21 +781,21 @@ export function CanvasEditorShell({
             ))}
           </div>
 
-          <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/90 px-3 py-1.5 shadow-lg">
-            <span className="text-xs tabular-nums text-slate-400">
+          <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-lg border border-line-strong bg-cream/90 px-3 py-1.5 shadow-lg">
+            <span className="text-xs tabular-nums text-muted">
               {Math.round(viewport.transform.scale * 100)}%
             </span>
             <button
               type="button"
               onClick={viewport.resetToFit}
-              className="rounded-md px-2 py-1 text-xs font-medium text-cyan-300 transition hover:bg-slate-800"
+              className="rounded-md px-2 py-1 text-xs font-medium text-teal transition hover:bg-paper-2"
             >
               Reset view
             </button>
           </div>
         </section>
 
-        <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-slate-800 bg-slate-950">
+        <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-line bg-cream">
           <CanvasSidePanel
             issue={issue}
             token={token}
@@ -830,18 +839,18 @@ export function CanvasEditorShell({
       </div>
 
       {pendingRedaction ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-line-strong bg-paper p-6 shadow-2xl">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent-strong">
                 PII redaction
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-50">
+              <h2 className="mt-2 text-lg font-semibold text-ink">
                 Apply this redaction?
               </h2>
             </div>
 
-            <p className="text-sm leading-6 text-slate-400">
+            <p className="text-sm leading-6 text-muted">
               The selected area is burned into the exported PNG. The original
               pixels inside it will not be recoverable from the flattened
               image.
@@ -849,22 +858,22 @@ export function CanvasEditorShell({
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-slate-500">Method</dt>
-                <dd className="text-slate-200">
+                <dt className="text-muted">Method</dt>
+                <dd className="text-ink-soft">
                   {pendingRedaction.method === "pixelate"
                     ? "Pixelate"
                     : "Gaussian blur"}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Strength</dt>
-                <dd className="text-slate-200">
+                <dt className="text-muted">Strength</dt>
+                <dd className="text-ink-soft">
                   {pendingRedaction.strength}px
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Area</dt>
-                <dd className="text-slate-200">
+                <dt className="text-muted">Area</dt>
+                <dd className="text-ink-soft">
                   {Math.round(pendingRedaction.width)} ×{" "}
                   {Math.round(pendingRedaction.height)}
                 </dd>
@@ -875,14 +884,14 @@ export function CanvasEditorShell({
               <button
                 type="button"
                 onClick={handleCancelRedaction}
-                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleApplyRedaction}
-                className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-400"
+                className="rounded-md bg-bad px-4 py-2 text-sm font-semibold text-cream transition hover:bg-bad-hover"
               >
                 Apply redaction
               </button>
@@ -892,13 +901,13 @@ export function CanvasEditorShell({
       ) : null}
 
       {pasteCandidate ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4">
-          <div className="w-full max-w-lg space-y-4 rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4">
+          <div className="w-full max-w-lg space-y-4 rounded-xl border border-line-strong bg-paper p-6 shadow-2xl">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent-strong">
                 Clipboard image
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-50">
+              <h2 className="mt-2 text-lg font-semibold text-ink">
                 Use this pasted image?
               </h2>
             </div>
@@ -907,16 +916,16 @@ export function CanvasEditorShell({
             <img
               src={pasteCandidate.previewUrl}
               alt="Pasted clipboard preview"
-              className="max-h-64 w-full rounded-lg border border-slate-800 object-contain"
+              className="max-h-64 w-full rounded-lg border border-line object-contain"
             />
 
             {confirmReplace ? (
-              <p className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-200">
+              <p className="rounded-lg border border-bad/40 bg-bad/10 p-4 text-sm text-bad">
                 Replacing the background will discard {scene.nodes.length}{" "}
                 annotation{scene.nodes.length === 1 ? "" : "s"}. Continue?
               </p>
             ) : (
-              <p className="text-sm leading-6 text-slate-400">
+              <p className="text-sm leading-6 text-muted">
                 Replace the screenshot you are annotating, or keep it and add
                 this image as a supplementary reference for the issue.
               </p>
@@ -926,7 +935,7 @@ export function CanvasEditorShell({
               <button
                 type="button"
                 onClick={handleCancelPaste}
-                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2"
               >
                 Cancel
               </button>
@@ -936,14 +945,14 @@ export function CanvasEditorShell({
                   <button
                     type="button"
                     onClick={() => setConfirmReplace(false)}
-                    className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                    className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2"
                   >
                     Keep annotations
                   </button>
                   <button
                     type="button"
                     onClick={handlePasteReplace}
-                    className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-400"
+                    className="rounded-md bg-bad px-4 py-2 text-sm font-semibold text-cream transition hover:bg-bad-hover"
                   >
                     Yes, replace
                   </button>
@@ -953,14 +962,14 @@ export function CanvasEditorShell({
                   <button
                     type="button"
                     onClick={handlePasteAppend}
-                    className="rounded-md border border-cyan-500/40 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10"
+                    className="rounded-md border border-teal/40 px-4 py-2 text-sm font-medium text-teal transition hover:bg-teal/10"
                   >
                     Add as supplementary
                   </button>
                   <button
                     type="button"
                     onClick={handlePasteReplace}
-                    className="rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+                    className="rounded-md bg-teal px-4 py-2 text-sm font-semibold text-cream transition hover:bg-teal-hover"
                   >
                     Replace background
                   </button>
@@ -972,22 +981,22 @@ export function CanvasEditorShell({
       ) : null}
 
       {confirmDeleteDraft ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-bad/30 bg-paper p-6 shadow-2xl">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-rose-400">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-bad">
                 Delete draft
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-50">
+              <h2 className="mt-2 text-lg font-semibold text-ink">
                 Delete {issue.project_key}-{issue.issue_number}?
               </h2>
             </div>
-            <p className="text-sm leading-6 text-slate-400">
+            <p className="text-sm leading-6 text-muted">
               The draft, its uploaded raw captures and any annotations will be
               removed. This cannot be undone.
             </p>
             {deleteDraftError ? (
-              <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-200">
+              <p className="rounded-md border border-bad/30 bg-bad/10 p-2 text-xs text-bad">
                 {deleteDraftError}
               </p>
             ) : null}
@@ -999,7 +1008,7 @@ export function CanvasEditorShell({
                   setDeleteDraftError(null);
                 }}
                 disabled={deletingDraft}
-                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:opacity-60"
+                className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -1009,7 +1018,7 @@ export function CanvasEditorShell({
                   void handleDeleteDraft();
                 }}
                 disabled={deletingDraft}
-                className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-400 disabled:opacity-60"
+                className="rounded-md bg-bad px-4 py-2 text-sm font-semibold text-cream transition hover:bg-bad-hover disabled:opacity-60"
               >
                 {deletingDraft ? "Deleting…" : "Delete draft"}
               </button>
@@ -1019,22 +1028,22 @@ export function CanvasEditorShell({
       ) : null}
 
       {draftDeleted ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-line-strong bg-paper p-6 shadow-2xl">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Draft deleted
             </p>
-            <h2 className="text-lg font-semibold text-slate-50">
+            <h2 className="text-lg font-semibold text-ink">
               {issue.project_key}-{issue.issue_number} was removed
             </h2>
-            <p className="text-sm leading-6 text-slate-400">
+            <p className="text-sm leading-6 text-muted">
               The draft and its uploads are gone. This tab should close
               automatically.
             </p>
             <button
               type="button"
               onClick={() => requestCanvasClose()}
-              className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+              className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2"
             >
               Close tab
             </button>
@@ -1043,34 +1052,34 @@ export function CanvasEditorShell({
       ) : null}
 
       {submissionResult ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl border border-emerald-500/30 bg-slate-900 p-6 shadow-2xl">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-400">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-good/30 bg-paper p-6 shadow-2xl">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-good">
               Submitted
             </p>
-            <h2 className="text-lg font-semibold text-slate-50">
+            <h2 className="text-lg font-semibold text-ink">
               Bug report is pending
             </h2>
-            <p className="text-sm leading-6 text-slate-400">
+            <p className="text-sm leading-6 text-muted">
               The annotated PNG, vector scene and any attachments have been
               saved. The issue is now in the Pending column.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={submissionResult.redirectUrl}
-                className="inline-block rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                className="inline-block rounded-md bg-good px-4 py-2 text-sm font-semibold text-cream transition hover:bg-good-hover"
               >
                 Open on the Kanban board
               </a>
               <button
                 type="button"
                 onClick={() => requestCanvasClose()}
-                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+                className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2"
               >
                 Close tab
               </button>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               This tab closes automatically. If the browser blocks it, use
               Close tab.
             </p>

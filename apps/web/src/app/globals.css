@@ -1,7 +1,35 @@
 @import "tailwindcss";
 
+/*
+ * ARGUS theme: deep teal + warm amber + cream.
+ * Mirrors the Chrome extension palette so capture, canvas and dashboard feel
+ * like one product. Flat surfaces only; no gradients.
+ */
+@theme {
+  --color-cream: #f7f3ea;
+  --color-paper: #fdfbf6;
+  --color-paper-2: #f1ebdf;
+  --color-line: #ddd4c4;
+  --color-line-strong: #c9bca8;
+  --color-ink: #17313a;
+  --color-ink-soft: #2f4a52;
+  --color-muted: #72807f;
+  --color-teal: #124a5a;
+  --color-teal-hover: #0e3a47;
+  --color-teal-tint: #c7d7d8;
+  --color-accent: #e3a05c;
+  --color-accent-hover: #d08a43;
+  --color-accent-strong: #8f5a1c;
+  --color-accent-tint: #f6e7d3;
+  --color-good: #4f8a6d;
+  --color-good-hover: #41775c;
+  --color-warn: #b97f32;
+  --color-bad: #b45f4d;
+  --color-bad-hover: #9d4f3e;
+}
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -11,7 +39,18 @@ body {
 
 body {
   margin: 0;
-  background: #020617;
-  color: #e2e8f0;
+  background: var(--color-cream);
+  color: var(--color-ink);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-tint);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
 }

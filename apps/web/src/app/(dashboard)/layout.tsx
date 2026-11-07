@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { QueryResultRow } from "pg";
 
@@ -24,19 +25,28 @@ export default async function DashboardLayout({
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-6 py-3">
+    <div className="min-h-screen bg-cream text-ink">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-teal-hover bg-teal px-6 py-3 text-cream">
         <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-xs font-medium uppercase tracking-[0.3em] text-cyan-400"
-          >
-            ARGUS
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image
+              src="/argus-logo.png"
+              alt=""
+              width={30}
+              height={30}
+              priority
+              className="rounded-full"
+            />
+            <span className="text-sm font-bold tracking-[0.16em] text-cream">
+              ARGUS
+            </span>
           </Link>
-          <span className="text-sm text-slate-400">Dashboard</span>
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-teal-tint">
+            Dashboard
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <ConfigurationsButton
             projects={projects.rows.map(({ key, name }) => ({ key, name }))}
           />
@@ -44,14 +54,14 @@ export default async function DashboardLayout({
           <ProjectSwitcher
             projects={projects.rows.map(({ key, name }) => ({ key, name }))}
           />
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-teal-tint">
             {session.user.email} · {session.user.role}
           </span>
           <SignOutButton />
         </div>
       </header>
 
-      <main className="p-6">{children}</main>
+      <main className="p-4 sm:p-6">{children}</main>
     </div>
   );
 }

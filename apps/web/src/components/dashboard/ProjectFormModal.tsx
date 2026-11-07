@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 
 const inputClass =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500";
+  "w-full rounded-md border border-line-strong bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-teal";
 
 export function ProjectFormModal({
   editing,
@@ -76,21 +76,21 @@ export function ProjectFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md space-y-4 rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        className="w-full max-w-md space-y-4 rounded-xl border border-line-strong bg-paper p-6 shadow-2xl"
       >
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal">
             {isEdit ? "Edit project" : "New project"}
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-50">
+          <h2 className="mt-2 text-lg font-semibold text-ink">
             {isEdit ? `Edit ${editing!.key}` : "Create a project"}
           </h2>
         </div>
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>Name *</span>
           <input
             autoFocus
@@ -102,7 +102,7 @@ export function ProjectFormModal({
           />
         </label>
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>Key * (immutable, 1–10 chars)</span>
           <input
             value={key}
@@ -114,7 +114,7 @@ export function ProjectFormModal({
           />
         </label>
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>Description</span>
           <textarea
             rows={3}
@@ -126,7 +126,7 @@ export function ProjectFormModal({
         </label>
 
         {error ? (
-          <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+          <p className="rounded-md border border-bad/30 bg-bad/10 p-3 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -136,14 +136,14 @@ export function ProjectFormModal({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2 disabled:opacity-60"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-60"
+            className="rounded-md bg-teal px-4 py-2 text-sm font-semibold text-cream transition hover:bg-teal-hover disabled:opacity-60"
           >
             {pending ? "Saving…" : isEdit ? "Save changes" : "Create project"}
           </button>

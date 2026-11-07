@@ -52,13 +52,13 @@ export function ProjectSwitcher({
   }
 
   return (
-    <label className="flex items-center gap-2 text-xs text-slate-400">
+    <label className="flex items-center gap-2 text-xs text-teal-tint">
       <span className="sr-only">Active project</span>
       <select
         value={currentKey}
         onChange={handleChange}
         disabled={projects.length === 0}
-        className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none focus:border-cyan-500 disabled:opacity-50"
+        className="rounded-lg border border-cream/30 bg-teal-hover px-2 py-1.5 text-xs font-semibold text-cream outline-none focus:border-accent disabled:opacity-50"
       >
         <option value="">
           {projects.length === 0 ? "No projects" : "Select project…"}

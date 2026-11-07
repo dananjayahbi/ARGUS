@@ -53,22 +53,30 @@ describe("buildIssueGallery", () => {
     });
   });
 
-  it("appends the annotated capture unless it duplicates a raw image", () => {
-    const withAnnotation = buildIssueGallery({
+  it("prefers the annotated image inside the primary capture instead of duplicating it", () => {
+    const gallery = buildIssueGallery({
       issueNumber: 7,
-      rawImageUrl: "https://cdn.example/raw.png",
+      rawImageUrl: "https://cdn.example/raw-1.png",
       annotatedImageUrl: "https://cdn.example/annotated.png",
+      supplementaryAssets: [{ url: "https://cdn.example/raw-2.png" }],
     });
 
-    expect(withAnnotation.map((image) => image.kind)).toEqual([
-      "capture",
-      "annotated",
-    ]);
-    expect(withAnnotation[1]).toMatchObject({
+    expect(gallery).toHaveLength(2);
+    expect(gallery[0]).toMatchObject({
       src: "https://cdn.example/annotated.png",
-      label: "Annotated capture",
+      kind: "annotated",
     });
+    expect(gallery[0].versions).toEqual([
+      { src: "https://cdn.example/annotated.png", label: "Annotated" },
+      { src: "https://cdn.example/raw-1.png", label: "Original" },
+    ]);
+    expect(gallery[1]).toMatchObject({
+      src: "https://cdn.example/raw-2.png",
+      kind: "capture",
+    });
+  });
 
+  it("keeps a single entry when the annotated url duplicates a raw capture", () => {
     const duplicate = buildIssueGallery({
       issueNumber: 7,
       rawImageUrl: "https://cdn.example/raw.png",
@@ -77,5 +85,22 @@ describe("buildIssueGallery", () => {
 
     expect(duplicate).toHaveLength(1);
     expect(duplicate[0].kind).toBe("capture");
+    expect(duplicate[0].versions).toBeUndefined();
+  });
+
+  it("shows an annotated-only issue without inventing an original", () => {
+    const annotatedOnly = buildIssueGallery({
+      issueNumber: 9,
+      rawImageUrl: null,
+      annotatedImageUrl: "https://cdn.example/annotated.png",
+    });
+
+    expect(annotatedOnly).toEqual([
+      expect.objectContaining({
+        src: "https://cdn.example/annotated.png",
+        kind: "annotated",
+      }),
+    ]);
+    expect(annotatedOnly[0].versions).toBeUndefined();
   });
 });

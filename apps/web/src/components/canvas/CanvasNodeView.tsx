@@ -63,7 +63,7 @@ export function CanvasNodeView({
       return (
         <Label ref={registerRef} {...common} x={node.x} y={node.y}>
           <Tag
-            fill={node.background ?? "#020617"}
+            fill={node.background ?? "#fdfbf6"}
             opacity={0.92}
             cornerRadius={4}
           />
@@ -120,7 +120,7 @@ export function CanvasNodeView({
           <Circle
             radius={node.radius}
             fill={node.fill}
-            stroke="#020617"
+            stroke="#17313a"
             strokeWidth={2}
           />
           <Text

@@ -17,10 +17,16 @@ interface Point {
   y: number;
 }
 
+export interface LightboxImageVersion {
+  src: string;
+  label: string;
+}
+
 export interface LightboxImage {
   src: string;
   alt: string;
   title?: string;
+  versions?: LightboxImageVersion[];
 }
 
 function clampZoom(scale: number) {
@@ -73,6 +79,16 @@ export function ImageLightbox({
     count === 0 ? 0 : Math.min(Math.max(activeIndex, 0), count - 1);
   const active = gallery[safeIndex];
 
+  const [versionOverride, setVersionOverride] = useState<{
+    index: number;
+    src: string;
+  } | null>(null);
+  const activeSrc =
+    versionOverride && versionOverride.index === safeIndex
+      ? versionOverride.src
+      : active?.src;
+  const versions = active?.versions ?? [];
+
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [natural, setNatural] = useState<{ width: number; height: number } | null>(
     null,
@@ -86,7 +102,20 @@ export function ImageLightbox({
   const [dragging, setDragging] = useState(false);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 
-  const imageVisible = Boolean(natural) && loadedSrc === active?.src;
+  const imageVisible = Boolean(natural) && loadedSrc === activeSrc;
+
+  const chooseVersion = useCallback(
+    (src: string) => {
+      if (src === activeSrc) {
+        return;
+      }
+      naturalRef.current = null;
+      setNatural(null);
+      setLoadedSrc(null);
+      setVersionOverride({ index: safeIndex, src });
+    },
+    [activeSrc, safeIndex],
+  );
 
   const step = useCallback(
     (delta: number) => {
@@ -95,6 +124,7 @@ export function ImageLightbox({
       }
       dragRef.current = null;
       setDragging(false);
+      setVersionOverride(null);
       setActiveIndex((current) => (((current + delta) % count) + count) % count);
     },
     [count],
@@ -309,67 +339,94 @@ export function ImageLightbox({
           ? `Preview: ${active.title}`
           : `Preview: ${active?.alt ?? "image"}`
       }
-      className="fixed inset-0 z-[60] flex flex-col bg-slate-950/98"
+      className="fixed inset-0 z-[60] flex flex-col bg-cream/98"
     >
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-800 px-6 py-3">
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-line px-6 py-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent-strong">
             Image preview
           </p>
-          <p className="truncate text-sm text-slate-300">
+          <p className="truncate text-sm text-ink-soft">
             {active?.title ?? active?.alt ?? "Image"}
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {versions.length > 1 ? (
+            <div
+              role="group"
+              aria-label="Image version"
+              className="flex items-center gap-1 rounded-md border border-line-strong bg-paper p-1"
+            >
+              {versions.map((version) => {
+                const selected = activeSrc === version.src;
+                return (
+                  <button
+                    key={version.src}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => chooseVersion(version.src)}
+                    className={`rounded px-2 py-1 text-xs font-semibold transition ${
+                      selected
+                        ? "bg-teal text-cream"
+                        : "text-ink-soft hover:bg-paper-2"
+                    }`}
+                  >
+                    {version.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
           {canNavigate ? (
-            <div className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 p-1">
+            <div className="flex items-center gap-1 rounded-md border border-line-strong bg-paper p-1">
               <button
                 type="button"
                 onClick={() => step(-1)}
                 aria-label="Previous image"
-                className="h-8 w-8 rounded text-lg leading-none text-slate-300 transition hover:bg-slate-800"
+                className="h-8 w-8 rounded text-lg leading-none text-ink-soft transition hover:bg-paper-2"
               >
                 ‹
               </button>
-              <span className="w-14 text-center text-xs tabular-nums text-slate-400">
+              <span className="w-14 text-center text-xs tabular-nums text-muted">
                 {safeIndex + 1} / {count}
               </span>
               <button
                 type="button"
                 onClick={() => step(1)}
                 aria-label="Next image"
-                className="h-8 w-8 rounded text-lg leading-none text-slate-300 transition hover:bg-slate-800"
+                className="h-8 w-8 rounded text-lg leading-none text-ink-soft transition hover:bg-paper-2"
               >
                 ›
               </button>
             </div>
           ) : null}
 
-          <div className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 p-1">
+          <div className="flex items-center gap-1 rounded-md border border-line-strong bg-paper p-1">
             <button
               type="button"
               onClick={() => zoomByStep(1 / 1.25)}
               aria-label="Zoom out"
-              className="h-8 w-8 rounded text-lg leading-none text-slate-300 transition hover:bg-slate-800"
+              className="h-8 w-8 rounded text-lg leading-none text-ink-soft transition hover:bg-paper-2"
             >
               −
             </button>
-            <span className="w-14 text-center text-xs tabular-nums text-slate-400">
+            <span className="w-14 text-center text-xs tabular-nums text-muted">
               {Math.round(transform.scale * 100)}%
             </span>
             <button
               type="button"
               onClick={() => zoomByStep(1.25)}
               aria-label="Zoom in"
-              className="h-8 w-8 rounded text-lg leading-none text-slate-300 transition hover:bg-slate-800"
+              className="h-8 w-8 rounded text-lg leading-none text-ink-soft transition hover:bg-paper-2"
             >
               +
             </button>
             <button
               type="button"
               onClick={fitToViewport}
-              className="rounded px-2 py-1 text-xs font-medium text-cyan-300 transition hover:bg-slate-800"
+              className="rounded px-2 py-1 text-xs font-medium text-teal transition hover:bg-paper-2"
             >
               Fit
             </button>
@@ -378,7 +435,7 @@ export function ImageLightbox({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 transition hover:bg-slate-800"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-xs text-ink-soft transition hover:bg-paper-2"
           >
             Close
           </button>
@@ -398,7 +455,7 @@ export function ImageLightbox({
               type="button"
               onClick={() => step(-1)}
               aria-label="Previous image"
-              className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-2 text-2xl leading-none text-slate-200 transition hover:bg-slate-800"
+              className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-line-strong bg-paper/80 px-3 py-2 text-2xl leading-none text-ink-soft transition hover:bg-paper-2"
             >
               ‹
             </button>
@@ -406,7 +463,7 @@ export function ImageLightbox({
               type="button"
               onClick={() => step(1)}
               aria-label="Next image"
-              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-2 text-2xl leading-none text-slate-200 transition hover:bg-slate-800"
+              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-line-strong bg-paper/80 px-3 py-2 text-2xl leading-none text-ink-soft transition hover:bg-paper-2"
             >
               ›
             </button>
@@ -415,8 +472,8 @@ export function ImageLightbox({
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          key={active?.src}
-          src={active?.src}
+          key={activeSrc}
+          src={activeSrc}
           alt={active?.alt ?? ""}
           draggable={false}
           onLoad={(event) => {
@@ -427,7 +484,7 @@ export function ImageLightbox({
             };
             naturalRef.current = next;
             setNatural(next);
-            setLoadedSrc(active?.src ?? null);
+            setLoadedSrc(activeSrc ?? null);
 
             const element = containerRef.current;
             if (element && next.width > 0 && next.height > 0) {
@@ -450,14 +507,14 @@ export function ImageLightbox({
         />
       </div>
 
-      <footer className="shrink-0 border-t border-slate-800 px-6 py-2 text-center text-xs text-slate-500">
-        Scroll to zoom · Hold <kbd className="rounded bg-slate-800 px-1">Space</kbd>{" "}
+      <footer className="shrink-0 border-t border-line px-6 py-2 text-center text-xs text-muted">
+        Scroll to zoom · Hold <kbd className="rounded bg-paper-2 px-1">Space</kbd>{" "}
         and drag to pan · Double-click to zoom · Esc to close
         {canNavigate ? (
           <>
             {" "}
-            · Use <kbd className="rounded bg-slate-800 px-1">←</kbd>{" "}
-            <kbd className="rounded bg-slate-800 px-1">→</kbd> to switch images
+            · Use <kbd className="rounded bg-paper-2 px-1">←</kbd>{" "}
+            <kbd className="rounded bg-paper-2 px-1">→</kbd> to switch images
           </>
         ) : null}
       </footer>

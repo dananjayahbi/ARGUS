@@ -155,18 +155,18 @@ export function IssueDetailModal({
   }, [issue, imageAssets]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
-      <header className="shrink-0 border-b border-slate-800 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex flex-col bg-cream">
+      <header className="shrink-0 border-b border-teal-hover bg-teal px-6 py-4 text-cream">
         <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
               Issue details
             </p>
-            <h2 className="mt-2 truncate text-xl font-semibold text-slate-50">
+            <h2 className="mt-2 truncate text-xl font-semibold text-cream">
               {issue ? issue.title : "Loading…"}
             </h2>
             {issue && data ? (
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-teal-tint">
                 {projectKey}-{issue.issue_number} · {issue.status} ·{" "}
                 {issue.report_type}
               </p>
@@ -178,7 +178,7 @@ export function IssueDetailModal({
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-200 transition hover:bg-slate-800"
+                  className="rounded-lg border border-cream/30 px-2 py-1 text-xs font-semibold text-cream transition hover:bg-cream/10"
                 >
                   Edit
                 </button>
@@ -188,7 +188,7 @@ export function IssueDetailModal({
                     setConfirmDelete(true);
                     setDeleteError(null);
                   }}
-                  className="rounded-md border border-rose-500/40 px-2 py-1 text-xs text-rose-200 transition hover:bg-rose-500/10"
+                  className="rounded-lg border border-accent/70 px-2 py-1 text-xs font-semibold text-accent transition hover:bg-accent/15"
                 >
                   Delete
                 </button>
@@ -198,7 +198,7 @@ export function IssueDetailModal({
               type="button"
               onClick={onClose}
               aria-label="Close issue details"
-              className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
+              className="rounded-lg border border-cream/30 px-2 py-1 text-xs font-semibold text-cream transition hover:bg-cream/10"
             >
               Close
             </button>
@@ -209,20 +209,20 @@ export function IssueDetailModal({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
           {confirmDelete && issue ? (
-            <div className="rounded-md border border-rose-500/40 bg-rose-500/10 p-3">
-              <p className="text-sm text-rose-100">
+            <div className="rounded-md border border-bad/40 bg-bad/10 p-3">
+              <p className="text-sm text-bad">
                 Delete issue {projectKey}-{issue.issue_number}? This permanently
                 deletes the issue and its notes. This cannot be undone.
               </p>
               {deleteError ? (
-                <p className="mt-1 text-xs text-rose-200">{deleteError}</p>
+                <p className="mt-1 text-xs text-bad">{deleteError}</p>
               ) : null}
               <div className="mt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
                   disabled={deleting}
-                  className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-60"
+                  className="rounded-md border border-line-strong px-3 py-1.5 text-xs text-ink-soft disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -254,7 +254,7 @@ export function IssueDetailModal({
                       setDeleting(false);
                     }
                   }}
-                  className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-semibold text-slate-950 disabled:opacity-60"
+                  className="rounded-md bg-bad px-3 py-1.5 text-xs font-semibold text-cream disabled:opacity-60"
                 >
                   {deleting ? "Deleting…" : "Delete permanently"}
                 </button>
@@ -263,45 +263,45 @@ export function IssueDetailModal({
           ) : null}
 
           {error ? (
-            <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+            <p className="rounded-md border border-bad/30 bg-bad/10 p-3 text-sm text-bad">
               {error}
             </p>
           ) : null}
 
           {!data && !error ? (
-            <p className="text-sm text-slate-400">Loading issue…</p>
+            <p className="text-sm text-muted">Loading issue…</p>
           ) : null}
 
           {issue && tier ? (
             <>
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <span
-                  className={`rounded border border-slate-700 px-2 py-1 ${tier.tone}`}
+                  className={`rounded border border-line-strong px-2 py-1 ${tier.tone}`}
                 >
                   {issue.priority}% · {tier.label}
                 </span>
-                <span className="text-slate-500">
+                <span className="text-muted">
                   Updated {new Date(issue.updated_at).toLocaleString()}
                 </span>
               </div>
 
               <section className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                   Description
                 </h3>
                 {issue.description ? (
-                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-300 [&_a]:text-cyan-300 [&_a]:underline [&_code]:rounded [&_code]:bg-slate-800 [&_code]:px-1 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_p]:mb-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-950 [&_pre]:p-3 [&_strong]:font-semibold [&_ul]:list-disc">
+                  <div className="rounded-lg border border-line bg-cream/60 p-3 text-sm text-ink-soft [&_a]:text-teal [&_a]:underline [&_code]:rounded [&_code]:bg-paper-2 [&_code]:px-1 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_p]:mb-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-cream [&_pre]:p-3 [&_strong]:font-semibold [&_ul]:list-disc">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {issue.description}
                     </ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No description.</p>
+                  <p className="text-sm text-muted">No description.</p>
                 )}
               </section>
 
               {isTextOnly ? (
-                <p className="rounded-lg border border-dashed border-slate-800 p-4 text-sm text-slate-500">
+                <p className="rounded-lg border border-dashed border-line p-4 text-sm text-muted">
                   Text-only report: no screenshot, annotation canvas or audio
                   was attached.
                 </p>
@@ -310,12 +310,12 @@ export function IssueDetailModal({
                   {gallery.length ? (
                     <section className="space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                        <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                           Screenshots ({gallery.length})
                         </h3>
-                        <span className="text-[11px] text-slate-500">
-                          Click a screenshot to open the gallery · use ← / → to
-                          change images
+                        <span className="text-[11px] text-muted">
+                          Click a screenshot to open the gallery · toggle
+                          Annotated / Original · use ← / → to change screenshots
                         </span>
                       </div>
                       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -324,21 +324,33 @@ export function IssueDetailModal({
                             <button
                               type="button"
                               onClick={() => setPreviewIndex(index)}
-                              className="group block w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950 text-left transition hover:border-cyan-500/50"
+                              title={
+                                image.versions
+                                  ? "Open preview and compare annotated with the original"
+                                  : "Open preview"
+                              }
+                              className="group block w-full overflow-hidden rounded-xl border border-line bg-paper text-left shadow-sm transition hover:border-accent"
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={image.src}
                                 alt={image.alt}
                                 loading="lazy"
-                                className="h-40 w-full bg-slate-950 object-cover object-top"
+                                className="h-40 w-full bg-cream object-cover object-top"
                               />
-                              <span className="flex items-center justify-between gap-2 border-t border-slate-800 px-3 py-1.5">
-                                <span className="truncate text-[11px] text-slate-400 transition group-hover:text-cyan-300">
+                              <span className="flex items-center justify-between gap-2 border-t border-line px-3 py-1.5">
+                                <span className="truncate text-[11px] text-muted transition group-hover:text-teal">
                                   {image.label}
                                 </span>
-                                <span className="shrink-0 text-[10px] tabular-nums text-slate-600">
-                                  {index + 1} / {gallery.length}
+                                <span className="flex shrink-0 items-center gap-1">
+                                  {image.kind === "annotated" ? (
+                                    <span className="rounded-full border border-accent/60 bg-accent-tint px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent-strong">
+                                      Annotated
+                                    </span>
+                                  ) : null}
+                                  <span className="text-[10px] tabular-nums text-muted">
+                                    {index + 1} / {gallery.length}
+                                  </span>
                                 </span>
                               </span>
                             </button>
@@ -347,14 +359,14 @@ export function IssueDetailModal({
                       </ul>
                     </section>
                   ) : (
-                    <p className="rounded-lg border border-dashed border-slate-800 p-4 text-sm text-slate-500">
+                    <p className="rounded-lg border border-dashed border-line p-4 text-sm text-muted">
                       No screenshot was attached to this issue.
                     </p>
                   )}
 
                   {issue.audio_note_url ? (
                     <section className="space-y-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                         Voice note
                       </h3>
                       <audio
@@ -370,7 +382,7 @@ export function IssueDetailModal({
               )}
 
               <section className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                   Diagnostics
                 </h3>
                 <DiagnosticsDrawer
@@ -381,24 +393,24 @@ export function IssueDetailModal({
 
               {fileAssets.length ? (
                 <section className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                     Supplementary files
                   </h3>
                   <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {fileAssets.map((asset) => (
                       <li
                         key={asset.id}
-                        className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60 p-2"
+                        className="overflow-hidden rounded-lg border border-line bg-cream/60 p-2"
                       >
                         <a
                           href={asset.asset_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="block break-all text-xs text-cyan-300 underline"
+                          className="block break-all text-xs text-teal underline"
                         >
                           {asset.asset_url.split("/").pop()}
                         </a>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-muted">
                           {asset.asset_type}
                         </span>
                       </li>
@@ -408,7 +420,7 @@ export function IssueDetailModal({
               ) : null}
 
               <section className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                   Reconsider audit trail
                 </h3>
                 {data?.notes.length ? (
@@ -416,17 +428,17 @@ export function IssueDetailModal({
                     {data.notes.map((note) => (
                       <li
                         key={note.id}
-                        className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"
+                        className="rounded-lg border border-line bg-cream/60 p-3"
                       >
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                          <span className="font-semibold uppercase tracking-wide text-slate-400">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                          <span className="font-semibold uppercase tracking-wide text-muted">
                             {note.author_role}
                           </span>
                           <span>
                             {new Date(note.created_at).toLocaleString()}
                           </span>
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-300">
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-ink-soft">
                           {note.note}
                         </p>
                         {note.attachment_urls?.length ? (
@@ -437,7 +449,7 @@ export function IssueDetailModal({
                                   href={url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-cyan-300 underline"
+                                  className="text-teal underline"
                                 >
                                   {url.split("/").pop()}
                                 </a>
@@ -449,7 +461,7 @@ export function IssueDetailModal({
                     ))}
                   </ol>
                 ) : (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted">
                     No reconsider notes yet.
                   </p>
                 )}
@@ -457,31 +469,31 @@ export function IssueDetailModal({
 
               {capturedPages.length ? (
                 <section className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
                     Captured pages ({capturedPages.length})
                   </h3>
                   <ol className="space-y-2">
                     {capturedPages.map((page, index) => (
                       <li
                         key={`${page.url}-${index}`}
-                        className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"
+                        className="rounded-lg border border-line bg-cream/60 p-3"
                       >
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          <span className="rounded border border-line-strong px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
                             {index + 1}
                           </span>
                           {page.kind === "supplementary" ? (
-                            <span className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">
+                            <span className="rounded border border-line-strong px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
                               supplementary
                             </span>
                           ) : null}
                           {page.title ? (
-                            <span className="text-xs font-medium text-slate-300">
+                            <span className="text-xs font-medium text-ink-soft">
                               {page.title}
                             </span>
                           ) : null}
                           {page.capturedAt ? (
-                            <span className="text-[11px] text-slate-500">
+                            <span className="text-[11px] text-muted">
                               {new Date(page.capturedAt).toLocaleString()}
                             </span>
                           ) : null}
@@ -490,7 +502,7 @@ export function IssueDetailModal({
                           href={page.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-1 block break-all text-xs text-cyan-300 underline"
+                          className="mt-1 block break-all text-xs text-teal underline"
                         >
                           {page.url}
                         </a>

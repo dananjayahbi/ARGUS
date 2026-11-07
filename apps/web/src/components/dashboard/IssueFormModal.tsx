@@ -8,7 +8,7 @@ import type { IssueStatus } from "@/lib/db-types";
 import { priorityTier } from "@/lib/priority";
 
 const inputClass =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500";
+  "w-full rounded-md border border-line-strong bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-teal";
 
 const STATUS_OPTIONS: Array<{ value: IssueStatus; label: string }> = [
   { value: "draft", label: "Draft" },
@@ -294,28 +294,28 @@ export function IssueFormModal({
     images.length;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4">
       <form
         onSubmit={handleSubmit}
-        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-xl border border-line-strong bg-paper p-6 shadow-2xl"
       >
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal">
             {isEdit ? "Edit issue" : "New issue"}
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-50">
+          <h2 className="mt-2 text-lg font-semibold text-ink">
             {isEdit
               ? `${projectKey}-${editing!.issue_number} · ${editing!.title}`
               : `Create an issue in ${projectKey}`}
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted">
             {isEdit
               ? "Edit title, description, priority, status or screenshot. Reconsider still requires a note from the board."
               : "Manual issue. Attach a screenshot, or go text-only."}
           </p>
         </div>
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>Title *</span>
           <input
             autoFocus
@@ -327,7 +327,7 @@ export function IssueFormModal({
           />
         </label>
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>Description (Markdown)</span>
           <textarea
             rows={5}
@@ -339,7 +339,7 @@ export function IssueFormModal({
         </label>
 
         <div className="space-y-2">
-          <span className="block text-xs text-slate-400">
+          <span className="block text-xs text-muted">
             Screenshots &amp; attachments
             {totalImages > 0 ? ` — ${totalImages} attached` : ""}
           </span>
@@ -375,18 +375,18 @@ export function IssueFormModal({
             }}
             className={`rounded-lg border-2 border-dashed p-5 text-center transition ${
               dragActive
-                ? "border-cyan-400 bg-cyan-500/10"
-                : "border-slate-700 bg-slate-950/50 hover:border-slate-500"
+                ? "border-teal bg-teal/10"
+                : "border-line-strong bg-cream/50 hover:border-line-strong"
             }`}
           >
-            <p className="text-sm font-medium text-slate-200">
+            <p className="text-sm font-medium text-ink-soft">
               Drag &amp; drop images here
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted">
               or click to choose files from your PC, or paste (Ctrl+V) a
               screenshot. PNG, JPG or WebP up to 50 MB each.
             </p>
-            <p className="mt-2 text-[11px] text-slate-600">
+            <p className="mt-2 text-[11px] text-muted">
               The first image becomes the issue screenshot. Extra images are
               stored as attachments via the CDN.
             </p>
@@ -406,14 +406,14 @@ export function IssueFormModal({
 
           {(existingRawUrl || existingSupplementary.length > 0) && (
             <div className="space-y-2">
-              <p className="text-[11px] text-slate-500">Already attached:</p>
+              <p className="text-[11px] text-muted">Already attached:</p>
               <div className="flex flex-wrap gap-2">
                 {existingRawUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={existingRawUrl}
                     alt="Current screenshot"
-                    className="h-16 w-16 rounded-md border border-slate-700 object-cover"
+                    className="h-16 w-16 rounded-md border border-line-strong object-cover"
                   />
                 )}
                 {existingSupplementary.map((asset, index) => (
@@ -422,7 +422,7 @@ export function IssueFormModal({
                     key={`${asset.url}-${index}`}
                     src={asset.url}
                     alt={`Attachment ${index + 1}`}
-                    className="h-16 w-16 rounded-md border border-slate-700 object-cover"
+                    className="h-16 w-16 rounded-md border border-line-strong object-cover"
                   />
                 ))}
               </div>
@@ -431,7 +431,7 @@ export function IssueFormModal({
 
           {images.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted">
                 New images ({images.length}): first becomes the screenshot.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -441,13 +441,13 @@ export function IssueFormModal({
                     <img
                       src={image.previewUrl}
                       alt={image.name}
-                      className="h-16 w-16 rounded-md border border-cyan-500/50 object-cover"
+                      className="h-16 w-16 rounded-md border border-teal/50 object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => removeImage(image.id)}
                       aria-label={`Remove ${image.name}`}
-                      className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950"
+                      className="absolute -right-1 -top-1 rounded-full bg-bad px-1.5 py-0.5 text-[10px] font-bold text-cream"
                     >
                       ×
                     </button>
@@ -458,15 +458,15 @@ export function IssueFormModal({
           )}
 
           {imageError && (
-            <p className="text-xs text-rose-300">{imageError}</p>
+            <p className="text-xs text-bad">{imageError}</p>
           )}
           {uploadPhase && (
-            <p className="text-xs text-cyan-300">{uploadPhase}</p>
+            <p className="text-xs text-teal">{uploadPhase}</p>
           )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1 text-xs text-slate-400">
+          <label className="block space-y-1 text-xs text-muted">
             <span>Priority: {priority}%</span>
             <input
               type="range"
@@ -474,12 +474,12 @@ export function IssueFormModal({
               max={100}
               value={priority}
               onChange={(event) => setPriority(Number(event.target.value))}
-              className="w-full accent-cyan-500"
+              className="w-full accent-teal"
             />
             <span className={tier.tone}>{tier.label}</span>
           </label>
 
-          <label className="block space-y-1 text-xs text-slate-400">
+          <label className="block space-y-1 text-xs text-muted">
             <span>Status</span>
             <select
               value={status}
@@ -496,7 +496,7 @@ export function IssueFormModal({
         </div>
 
         {error ? (
-          <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+          <p className="rounded-md border border-bad/30 bg-bad/10 p-3 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -506,14 +506,14 @@ export function IssueFormModal({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2 disabled:opacity-60"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md bg-teal px-4 py-2 text-sm font-semibold text-cream transition hover:bg-teal-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending
               ? uploadPhase

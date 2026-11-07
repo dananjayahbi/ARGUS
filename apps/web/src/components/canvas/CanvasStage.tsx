@@ -231,9 +231,9 @@ export function CanvasStage({
         x: world.x,
         y: world.y,
         text: "Text",
-        fill: "#f8fafc",
+        fill: "#17313a",
         fontSize: 18,
-        background: "#020617",
+        background: "#fdfbf6",
         padding: 6,
       });
       return;
@@ -247,8 +247,8 @@ export function CanvasStage({
         y: world.y,
         number: nextBadgeNumber(scene),
         radius: 16,
-        fill: "#06b6d4",
-        textColor: "#020617",
+        fill: "#e3a05c",
+        textColor: "#17313a",
         fontSize: 14,
       });
       return;
@@ -435,13 +435,13 @@ export function CanvasStage({
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
       {error ? (
-        <p className="absolute inset-x-0 top-16 z-10 text-center text-sm text-rose-300">
+        <p className="absolute inset-x-0 top-16 z-10 text-center text-sm text-bad">
           {error}
         </p>
       ) : null}
 
       {!imageUrl ? (
-        <p className="absolute inset-x-0 top-16 z-10 text-center text-sm text-slate-400">
+        <p className="absolute inset-x-0 top-16 z-10 text-center text-sm text-muted">
           Text-only report: no screenshot attached.
         </p>
       ) : null}
@@ -538,9 +538,9 @@ export function CanvasStage({
                   newBox.width < 8 || newBox.height < 8 ? oldBox : newBox
                 }
                 anchorSize={8}
-                borderStroke="#22d3ee"
-                anchorStroke="#22d3ee"
-                anchorFill="#020617"
+                borderStroke="#124a5a"
+                anchorStroke="#124a5a"
+                anchorFill="#fdfbf6"
               />
             ) : null}
           </Layer>

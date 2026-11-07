@@ -42,7 +42,7 @@ export function DashboardLanding({
   }, [projects, router]);
 
   return (
-    <div className="grid min-h-[50vh] place-items-center text-sm text-slate-400">
+    <div className="grid min-h-[50vh] place-items-center text-sm text-muted">
       Opening your last project…
     </div>
   );

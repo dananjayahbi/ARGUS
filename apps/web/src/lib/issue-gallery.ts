@@ -3,13 +3,22 @@
  *
  * Captures are ordered the way the operator took them: the primary raw image
  * first, then the supplementary assets, resolved against the capture telemetry
- * (`environment_info.captured_pages`) when it is available. The annotated image
- * is a derived asset, so it is appended last as its own entry.
+ * (`environment_info.captured_pages`) when it is available.
+ *
+ * The annotated image is a flattened version of the primary capture. Rather
+ * than showing it as a separate, duplicated screenshot, it becomes the
+ * preferred version of that capture; the lightbox then lets the operator toggle
+ * back to the untouched original.
  */
 
 import { collectCaptureImages } from "./captured-pages";
 
 export type IssueGalleryKind = "capture" | "annotated";
+
+export interface IssueGalleryVersion {
+  src: string;
+  label: string;
+}
 
 export interface IssueGalleryImage {
   src: string;
@@ -17,6 +26,7 @@ export interface IssueGalleryImage {
   title: string;
   label: string;
   kind: IssueGalleryKind;
+  versions?: IssueGalleryVersion[];
 }
 
 export function buildIssueGallery({
@@ -51,18 +61,40 @@ export function buildIssueGallery({
     };
   });
 
-  if (
-    annotatedImageUrl &&
-    !gallery.some((image) => image.src === annotatedImageUrl)
-  ) {
-    gallery.push({
+  if (!annotatedImageUrl) {
+    return gallery;
+  }
+
+  if (gallery.some((image) => image.src === annotatedImageUrl)) {
+    return gallery;
+  }
+
+  // The annotated PNG is flattened from the primary capture. Pair them so the
+  // gallery shows one entry per screenshot, with the annotated version first.
+  const primaryIndex = 0;
+  const primary = gallery[primaryIndex];
+
+  if (primary) {
+    gallery[primaryIndex] = {
+      ...primary,
+      src: annotatedImageUrl,
+      kind: "annotated",
+      versions: [
+        { src: annotatedImageUrl, label: "Annotated" },
+        { src: primary.src, label: "Original" },
+      ],
+    };
+    return gallery;
+  }
+
+  return [
+    ...gallery,
+    {
       src: annotatedImageUrl,
       alt: `Annotated capture (issue ${issueNumber})`,
       title: `Issue ${issueNumber} · Annotated capture`,
       label: "Annotated capture",
       kind: "annotated",
-    });
-  }
-
-  return gallery;
+    },
+  ];
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const inputClass =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500";
+  "w-full rounded-md border border-line-strong bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-teal";
 
 export function LoginForm({ next }: { next: string }) {
   const [email, setEmail] = useState("");
@@ -43,9 +43,9 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/60 p-6"
+      className="space-y-4 rounded-2xl border border-line bg-paper p-6 shadow-[0_22px_54px_rgba(23,49,58,0.10)]"
     >
-      <label className="block space-y-1 text-xs text-slate-400">
+      <label className="block space-y-1 text-xs text-muted">
         <span>Email</span>
         <input
           type="email"
@@ -58,7 +58,7 @@ export function LoginForm({ next }: { next: string }) {
         />
       </label>
 
-      <label className="block space-y-1 text-xs text-slate-400">
+      <label className="block space-y-1 text-xs text-muted">
         <span>Password</span>
         <input
           type="password"
@@ -71,13 +71,13 @@ export function LoginForm({ next }: { next: string }) {
       </label>
 
       {error ? (
-        <p className="text-xs leading-5 text-rose-300">{error}</p>
+        <p className="text-xs leading-5 text-bad">{error}</p>
       ) : null}
 
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-md bg-teal px-4 py-2 text-sm font-semibold text-cream transition hover:bg-teal-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

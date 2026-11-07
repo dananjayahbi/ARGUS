@@ -46,16 +46,16 @@ export function CanvasAccessDenied({ reason }: { reason: string }) {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-slate-100">
-      <div className="max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-900/60 p-8">
-        <p className="text-xs font-medium uppercase tracking-[0.3em] text-cyan-400">
+    <main className="flex min-h-screen items-center justify-center bg-cream p-8 text-ink">
+      <div className="max-w-md space-y-4 rounded-xl border border-line bg-paper/60 p-8">
+        <p className="text-xs font-medium uppercase tracking-[0.3em] text-accent-strong">
           ARGUS canvas
         </p>
-        <h1 className="text-2xl font-semibold text-slate-50">{message.title}</h1>
-        <p className="text-sm leading-6 text-slate-400">{message.body}</p>
+        <h1 className="text-2xl font-semibold text-ink">{message.title}</h1>
+        <p className="text-sm leading-6 text-muted">{message.body}</p>
         <Link
           href="/"
-          className="inline-block rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-400"
+          className="inline-block rounded-md bg-teal px-4 py-2 text-sm font-medium text-cream transition hover:bg-teal-hover"
         >
           Return home
         </Link>

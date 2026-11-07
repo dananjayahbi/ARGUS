@@ -122,6 +122,28 @@ API routes should build error responses. `src/app/error.tsx`,
 `src/app/global-error.tsx` and `src/app/not-found.tsx` provide the UI
 boundaries.
 
+## UI theme
+
+The web app shares the Chrome extension palette: deep teal chrome, warm amber
+actions, cream page background, paper surfaces and the same muted ink text.
+Design tokens live in `src/app/globals.css` inside Tailwind's `@theme` block
+(`cream`, `paper`, `paper-2`, `line`, `ink`, `teal`, `accent`, `good`, `bad`).
+Use those semantic utilities for new UI instead of raw slate/cyan/rose colors
+so the two surfaces stay visually aligned.
+
+The dashboard and canvas header bars use `bg-teal` with the ARGUS logo. Primary
+actions use amber (`bg-accent`) or teal (`bg-teal`); destructive actions use
+`bg-bad`. The canvas keeps its annotation defaults on the same palette: amber
+pen, ink text with a paper background, and teal selection handles.
+
+### Screenshot gallery
+
+An annotated PNG is a flattened version of the primary capture, so the issue
+detail gallery shows one card per screenshot. When both exist, the annotated
+version is displayed first with an `Annotated` badge; opening the lightbox adds
+an **Annotated / Original** toggle so the untouched capture stays one click
+away. Supplementary captures remain separate cards.
+
 ## Data layer
 
 `src/lib/db.ts` exports:

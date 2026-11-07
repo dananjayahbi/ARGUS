@@ -14,7 +14,7 @@ export function ProjectCreateButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-cyan-500 px-3 py-1 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400"
+        className="rounded-lg border border-accent bg-accent px-3 py-1.5 text-xs font-bold text-ink shadow-sm transition hover:border-accent-hover hover:bg-accent-hover"
       >
         + New Project
       </button>

@@ -144,7 +144,7 @@ export function BlurNodeView({
       width={node.width}
       height={node.height}
       fill="rgba(2,6,23,0.85)"
-      stroke="#f43f5e"
+      stroke="#e3a05c"
       strokeWidth={1}
     />
   );

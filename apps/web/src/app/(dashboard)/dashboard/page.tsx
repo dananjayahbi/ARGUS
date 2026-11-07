@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   if (projects.rows.length === 0) {
     return (
-      <div className="grid min-h-[50vh] place-items-center text-sm text-slate-400">
+      <div className="grid min-h-[50vh] place-items-center text-sm text-muted">
         No projects are available yet.
       </div>
     );

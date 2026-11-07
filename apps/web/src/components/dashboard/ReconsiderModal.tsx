@@ -14,7 +14,7 @@ interface NoteView {
 }
 
 const inputClass =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500";
+  "w-full rounded-md border border-line-strong bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-teal";
 
 export function ReconsiderModal({
   issue,
@@ -154,19 +154,19 @@ export function ReconsiderModal({
   const isDeveloper = mode === "developer";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4">
       <form
         onSubmit={handleSubmit}
-        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-xl border border-line-strong bg-paper p-6 shadow-2xl"
       >
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-rose-300">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-bad">
             {isDeveloper ? "Reconsider" : "QA reply"}
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-50">
+          <h2 className="mt-2 text-lg font-semibold text-ink">
             {issue.title}
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted">
             #{issue.issue_number} ·{" "}
             {isDeveloper
               ? "a developer note is required before this card moves."
@@ -175,16 +175,16 @@ export function ReconsiderModal({
         </div>
 
         {notes.length > 0 ? (
-          <div className="max-h-40 space-y-3 overflow-y-auto rounded-md border border-slate-800 bg-slate-950/60 p-3">
+          <div className="max-h-40 space-y-3 overflow-y-auto rounded-md border border-line bg-cream/60 p-3">
             {notes.map((item) => (
               <div key={item.id} className="text-xs">
-                <div className="flex flex-wrap items-center gap-2 text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-muted">
                   <span className="font-semibold uppercase tracking-wide">
                     {item.author_role}
                   </span>
                   <span>{new Date(item.created_at).toLocaleString()}</span>
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-slate-300">
+                <p className="mt-1 whitespace-pre-wrap text-ink-soft">
                   {item.note}
                 </p>
                 {item.attachment_urls?.length ? (
@@ -195,7 +195,7 @@ export function ReconsiderModal({
                           href={url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-cyan-300 underline"
+                          className="text-teal underline"
                         >
                           {url.split("/").pop()}
                         </a>
@@ -208,7 +208,7 @@ export function ReconsiderModal({
           </div>
         ) : null}
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>
             {isDeveloper ? "Developer note (Markdown)" : "QA reply (Markdown)"}
           </span>
@@ -226,7 +226,7 @@ export function ReconsiderModal({
           />
         </label>
 
-        <label className="block space-y-1 text-xs text-slate-400">
+        <label className="block space-y-1 text-xs text-muted">
           <span>Attachments (optional)</span>
           <input
             type="file"
@@ -234,16 +234,16 @@ export function ReconsiderModal({
             accept="image/png,image/jpeg,image/webp,audio/webm,audio/mp4,audio/wav,audio/ogg"
             onChange={handleFiles}
             disabled={uploading || pending}
-            className="block w-full text-xs text-slate-400 file:mr-3 file:rounded file:border-0 file:bg-slate-800 file:px-2 file:py-1 file:text-xs file:text-slate-200"
+            className="block w-full text-xs text-muted file:mr-3 file:rounded file:border-0 file:bg-paper-2 file:px-2 file:py-1 file:text-xs file:text-ink-soft"
           />
         </label>
 
         {uploading ? (
-          <p className="text-xs text-slate-400">Uploading attachments…</p>
+          <p className="text-xs text-muted">Uploading attachments…</p>
         ) : null}
 
         {attachmentUrls.length > 0 ? (
-          <ul className="list-disc space-y-1 pl-4 text-xs text-cyan-300">
+          <ul className="list-disc space-y-1 pl-4 text-xs text-teal">
             {attachmentUrls.map((url) => (
               <li key={url}>
                 <a
@@ -260,25 +260,25 @@ export function ReconsiderModal({
         ) : null}
 
         {uploadError ? (
-          <p className="text-xs text-rose-300">{uploadError}</p>
+          <p className="text-xs text-bad">{uploadError}</p>
         ) : null}
 
         {error ? (
-          <p className="text-xs leading-5 text-rose-300">{error}</p>
+          <p className="text-xs leading-5 text-bad">{error}</p>
         ) : null}
 
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+            className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-soft transition hover:bg-paper-2"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={pending || uploading}
-            className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md bg-bad px-4 py-2 text-sm font-semibold text-cream transition hover:bg-bad-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending
               ? "Saving…"

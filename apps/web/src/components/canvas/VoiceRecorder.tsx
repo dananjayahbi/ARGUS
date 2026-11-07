@@ -15,7 +15,7 @@ interface VoiceRecorderProps {
 }
 
 const buttonClass =
-  "rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:bg-paper-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
@@ -277,25 +277,25 @@ export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   }, [cleanupAnalyser, cleanupStream, stopTimer]);
 
   return (
-    <section className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+    <section className="space-y-3 rounded-lg border border-line bg-paper/40 p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
           Voice note
         </h3>
-        <span className="font-mono text-xs tabular-nums text-slate-300">
+        <span className="font-mono text-xs tabular-nums text-ink-soft">
           {formatDuration(duration)}
         </span>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+      <div className="h-2 overflow-hidden rounded-full bg-paper-2">
         <div
-          className="h-full rounded-full bg-cyan-400 transition-[width] duration-75"
+          className="h-full rounded-full bg-accent transition-[width] duration-75"
           style={{ width: `${Math.round(level * 100)}%` }}
         />
       </div>
 
       {error ? (
-        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs leading-5 text-amber-200">
+        <p className="rounded-md border border-accent/40 bg-accent/10 p-2 text-xs leading-5 text-accent-strong">
           {error}
         </p>
       ) : null}
@@ -305,7 +305,7 @@ export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
           <button
             type="button"
             onClick={() => void handleStart()}
-            className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-rose-400"
+            className="rounded-md bg-bad px-3 py-1.5 text-xs font-semibold text-cream transition hover:bg-bad-hover"
           >
             ● Record
           </button>
@@ -353,7 +353,7 @@ export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
               <a
                 href={audioUrl}
                 download={`voice-note${audioExtension(mimeType)}`}
-                className="text-xs text-cyan-300 underline-offset-2 hover:underline"
+                className="text-xs text-teal underline-offset-2 hover:underline"
               >
                 Download
               </a>
@@ -368,7 +368,7 @@ export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
         </audio>
       ) : null}
 
-      <p className="text-xs leading-5 text-slate-500">
+      <p className="text-xs leading-5 text-muted">
         No duration limit. Audio uploads when you submit the report.
       </p>
     </section>

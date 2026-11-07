@@ -18,11 +18,11 @@ const COLUMNS: Array<{
   label: string;
   accent: string;
 }> = [
-  { status: "draft", label: "Draft", accent: "border-slate-600" },
-  { status: "pending", label: "Pending", accent: "border-cyan-500/40" },
-  { status: "working", label: "Working", accent: "border-amber-500/40" },
-  { status: "reconsider", label: "Reconsider", accent: "border-rose-500/40" },
-  { status: "completed", label: "Completed", accent: "border-emerald-500/40" },
+  { status: "draft", label: "Draft", accent: "border-muted" },
+  { status: "pending", label: "Pending", accent: "border-teal/40" },
+  { status: "working", label: "Working", accent: "border-accent/50" },
+  { status: "reconsider", label: "Reconsider", accent: "border-bad/40" },
+  { status: "completed", label: "Completed", accent: "border-good/40" },
 ];
 
 export function KanbanBoard({
@@ -146,14 +146,17 @@ export function KanbanBoard({
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-line bg-paper p-4 shadow-sm">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-50">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-accent-strong">
+            {projectKey} board
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold text-ink">
             {localProjectName}
           </h1>
-          <p className="mt-1 text-xs text-slate-500">
-            {projectKey} · {issues.length} issue
-            {issues.length === 1 ? "" : "s"}
+          <p className="mt-1 text-xs text-muted">
+            {issues.length} issue{issues.length === 1 ? "" : "s"} · drag cards
+            between columns
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -164,7 +167,7 @@ export function KanbanBoard({
               setConfirmDeleteProject(false);
               setProjectError(null);
             }}
-            className="rounded-md border border-slate-700 px-2 py-1.5 text-xs text-slate-200 transition hover:bg-slate-800"
+            className="rounded-md border border-line-strong px-2 py-1.5 text-xs text-ink-soft transition hover:bg-paper-2"
           >
             Edit project
           </button>
@@ -175,17 +178,14 @@ export function KanbanBoard({
               setEditingProject(false);
               setProjectError(null);
             }}
-            className="rounded-md border border-rose-500/40 px-2 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/10"
+            className="rounded-md border border-bad/40 px-2 py-1.5 text-xs text-bad transition hover:bg-bad/10"
           >
             Delete project
           </button>
-          <p className="w-full text-right text-xs text-slate-500 sm:w-auto">
-            Drag cards between columns. Reconsider requires a note.
-          </p>
           <button
             type="button"
             onClick={() => setCreatingIssue(true)}
-            className="rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400"
+            className="rounded-lg border border-accent bg-accent px-3 py-1.5 text-xs font-bold text-ink shadow-sm transition hover:border-accent-hover hover:bg-accent-hover"
           >
             + New Issue
           </button>
@@ -193,20 +193,20 @@ export function KanbanBoard({
       </div>
 
       {confirmDeleteProject ? (
-        <div className="rounded-md border border-rose-500/40 bg-rose-500/10 p-3">
-          <p className="text-sm text-rose-100">
+        <div className="rounded-md border border-bad/40 bg-bad/10 p-3">
+          <p className="text-sm text-bad">
             Delete project {projectKey}? This permanently deletes the project
             and all its issues. This cannot be undone.
           </p>
           {projectError ? (
-            <p className="mt-1 text-xs text-rose-200">{projectError}</p>
+            <p className="mt-1 text-xs text-bad">{projectError}</p>
           ) : null}
           <div className="mt-2 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setConfirmDeleteProject(false)}
               disabled={deletingProject}
-              className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-60"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-xs text-ink-soft disabled:opacity-60"
             >
               Cancel
             </button>
@@ -240,7 +240,7 @@ export function KanbanBoard({
                   setDeletingProject(false);
                 }
               }}
-              className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-semibold text-slate-950 disabled:opacity-60"
+              className="rounded-md bg-bad px-3 py-1.5 text-xs font-semibold text-cream disabled:opacity-60"
             >
               {deletingProject ? "Deleting…" : "Delete permanently"}
             </button>
@@ -265,7 +265,7 @@ export function KanbanBoard({
       ) : null}
 
       {error ? (
-        <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+        <p className="rounded-md border border-bad/30 bg-bad/10 p-3 text-sm text-bad">
           {error}
         </p>
       ) : null}
@@ -282,20 +282,20 @@ export function KanbanBoard({
               data-status={column.status}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleDrop(event, column.status)}
-              className={`flex min-w-[220px] flex-1 flex-col rounded-xl border ${column.accent} bg-slate-900/40`}
+              className={`flex min-w-[220px] flex-1 flex-col rounded-2xl border ${column.accent} bg-paper/80 shadow-sm`}
             >
-              <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
+              <div className="flex items-center justify-between border-b border-line px-3 py-2">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">
                   {column.label}
                 </h2>
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">
+                <span className="rounded-full bg-paper-2 px-2 py-0.5 text-[10px] text-muted">
                   {columnIssues.length}
                 </span>
               </div>
 
               <div className="flex min-h-32 flex-1 flex-col gap-2 p-2">
                 {columnIssues.length === 0 ? (
-                  <p className="px-2 py-6 text-center text-xs text-slate-600">
+                  <p className="px-2 py-6 text-center text-xs text-muted">
                     No issues
                   </p>
                 ) : (
@@ -316,24 +316,24 @@ export function KanbanBoard({
                           setDraggingId(issue.id);
                         }}
                         onDragEnd={() => setDraggingId(null)}
-                        className={`cursor-grab rounded-lg border p-3 transition ${
+                        className={`cursor-grab rounded-xl border p-3 shadow-sm transition hover:border-accent ${
                           issue.status === "draft"
-                            ? "border-dashed border-slate-600 bg-slate-950/50 opacity-80"
-                            : "border-slate-700 bg-slate-950/80"
+                            ? "border-dashed border-line-strong bg-cream/60 opacity-80"
+                            : "border-line bg-paper"
                         } ${draggingId === issue.id ? "opacity-50" : ""}`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-[11px] text-slate-500">
+                          <span className="font-mono text-[11px] text-muted">
                             #{issue.issue_number}
                           </span>
                           <span
-                            className={`rounded border border-slate-700 px-1.5 py-0.5 text-[10px] ${tier.tone}`}
+                            className={`rounded border border-line-strong px-1.5 py-0.5 text-[10px] ${tier.tone}`}
                           >
                             {tier.label}
                           </span>
                         </div>
 
-                        <h3 className="mt-2 text-sm font-medium text-slate-100">
+                        <h3 className="mt-2 text-sm font-medium text-ink">
                           {issue.title}
                         </h3>
 
@@ -369,7 +369,7 @@ export function KanbanBoard({
                                     setDetailIssueId(issue.id);
                                   }}
                                   title="Open issue"
-                                  className="h-10 w-10 shrink-0 overflow-hidden rounded border border-slate-700 transition hover:border-cyan-500"
+                                  className="h-10 w-10 shrink-0 overflow-hidden rounded border border-line-strong transition hover:border-teal"
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
@@ -381,7 +381,7 @@ export function KanbanBoard({
                                 </button>
                               ))}
                               {extra > 0 ? (
-                                <span className="rounded border border-slate-700 bg-slate-800 px-1.5 py-1 text-[10px] font-semibold text-slate-300">
+                                <span className="rounded border border-line-strong bg-paper-2 px-1.5 py-1 text-[10px] font-semibold text-ink-soft">
                                   MORE +{extra}
                                 </span>
                               ) : null}
@@ -389,12 +389,12 @@ export function KanbanBoard({
                           );
                         })()}
 
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
                           <span>{issue.report_type}</span>
                           <div className="flex flex-wrap items-center gap-1">
                             {issue.status === "reconsider" ? (
                               <>
-                                <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-rose-300">
+                                <span className="rounded-full border border-bad/40 bg-bad/10 px-2 py-0.5 text-bad">
                                   Needs QA
                                 </span>
                                 <button
@@ -410,7 +410,7 @@ export function KanbanBoard({
                                       mode: "qa",
                                     });
                                   }}
-                                  className="rounded border border-rose-500/40 px-2 py-0.5 text-rose-200 transition hover:bg-rose-500/10"
+                                  className="rounded border border-bad/40 px-2 py-0.5 text-bad transition hover:bg-bad/10"
                                 >
                                   Reply
                                 </button>
@@ -424,7 +424,7 @@ export function KanbanBoard({
                                 event.stopPropagation();
                                 setDetailIssueId(issue.id);
                               }}
-                              className="rounded border border-slate-700 px-2 py-0.5 text-slate-300 transition hover:bg-slate-800"
+                              className="rounded border border-line-strong px-2 py-0.5 text-ink-soft transition hover:bg-paper-2"
                             >
                               Details
                             </button>
@@ -436,7 +436,7 @@ export function KanbanBoard({
                                 event.stopPropagation();
                                 setEditingIssue(issue);
                               }}
-                              className="rounded border border-slate-700 px-2 py-0.5 text-slate-300 transition hover:bg-slate-800"
+                              className="rounded border border-line-strong px-2 py-0.5 text-ink-soft transition hover:bg-paper-2"
                             >
                               Edit
                             </button>
@@ -448,7 +448,7 @@ export function KanbanBoard({
                                 event.stopPropagation();
                                 setConfirmDeleteIssueId(issue.id);
                               }}
-                              className="rounded border border-rose-500/40 px-2 py-0.5 text-rose-200 transition hover:bg-rose-500/10"
+                              className="rounded border border-bad/40 px-2 py-0.5 text-bad transition hover:bg-bad/10"
                             >
                               Delete
                             </button>
@@ -457,10 +457,10 @@ export function KanbanBoard({
 
                         {confirmDeleteIssueId === issue.id ? (
                           <div
-                            className="mt-2 rounded-md border border-rose-500/40 bg-rose-500/10 p-2"
+                            className="mt-2 rounded-md border border-bad/40 bg-bad/10 p-2"
                             onClick={(event) => event.stopPropagation()}
                           >
-                            <p className="text-[11px] text-rose-100">
+                            <p className="text-[11px] text-bad">
                               Delete #{issue.issue_number} permanently?
                             </p>
                             <div className="mt-1 flex justify-end gap-2">
@@ -470,7 +470,7 @@ export function KanbanBoard({
                                 onDragStart={(event) => event.preventDefault()}
                                 onClick={() => setConfirmDeleteIssueId(null)}
                                 disabled={deletingIssue}
-                                className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-200 disabled:opacity-60"
+                                className="rounded border border-line-strong px-2 py-0.5 text-[11px] text-ink-soft disabled:opacity-60"
                               >
                                 Cancel
                               </button>
@@ -480,7 +480,7 @@ export function KanbanBoard({
                                 onDragStart={(event) => event.preventDefault()}
                                 onClick={() => void deleteIssueFromCard(issue.id)}
                                 disabled={deletingIssue}
-                                className="rounded bg-rose-500 px-2 py-0.5 text-[11px] font-semibold text-slate-950 disabled:opacity-60"
+                                className="rounded bg-bad px-2 py-0.5 text-[11px] font-semibold text-cream disabled:opacity-60"
                               >
                                 {deletingIssue ? "Deleting…" : "Yes, delete"}
                               </button>
