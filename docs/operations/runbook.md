@@ -106,9 +106,9 @@ The web app runs at `http://localhost:3000`, the CDN at
 | `CDN_BASE_URL` | yes | no | Public HTTPS CDN origin, no trailing slash | `https://cdn.argus.example.com` |
 | `SESSION_SECRET` | yes | yes | HS256 session JWT signing key (≥32) | `session-secret-…` |
 | `QA_EMAIL` | yes | no | Initial QA account email | `qa@argus.local` |
-| `QA_PASSWORD` | yes | yes | Initial QA password (≥8) | `qa-dev-password` |
+| `QA_PASSWORD` | yes | yes | QA password (≥5) | `qa123` |
 | `DEVELOPER_EMAIL` | yes | no | Initial developer email | `dev@argus.local` |
-| `DEVELOPER_PASSWORD` | yes | yes | Initial developer password (≥8) | `dev-dev-password` |
+| `DEVELOPER_PASSWORD` | yes | yes | Developer password (≥5) | `dev123` |
 | `NODE_ENV` | no | no | `production` on servers, `development` locally | `production` |
 | `SENTRY_DSN` | no | yes | Sentry DSN; empty disables Sentry | `https://…@sentry.io/…` |
 | `SENTRY_ENVIRONMENT` | no | no | Sentry environment tag | `production` |
@@ -116,8 +116,9 @@ The web app runs at `http://localhost:3000`, the CDN at
 | `SENTRY_TRACES_SAMPLE_RATE` | no | no | Trace sample rate, default `0` | `0` |
 | `TEST_DATABASE_URL` | CI only | yes | Integration test database | `postgresql://…/argus_test` |
 
-`QA_PASSWORD` / `DEVELOPER_PASSWORD` are seed-only: changing them does not
-reset an existing hash.
+`QA_PASSWORD` / `DEVELOPER_PASSWORD` are applied on startup: if the stored
+Argon2id hash no longer matches the configured value, the existing account's
+password is updated.
 
 ### CDN (`apps/cdn/.env`, production `/etc/argus/cdn.env`)
 
@@ -338,7 +339,8 @@ databases and temp storage.
 ### Login returns 401 / redirects back to `/login`
 
 - Confirm the account exists and the password matches `QA_PASSWORD` or
-  `DEVELOPER_PASSWORD`; the seed only inserts missing emails.
+  `DEVELOPER_PASSWORD`; the seed inserts missing emails and re-hashes existing
+  accounts when the configured password changes.
 - Confirm `DATABASE_URL` points at the migrated database and `users` exists.
 - A `Secure` cookie is used when `NODE_ENV=production`. Serve production over
   HTTPS (Cloudflare/Vercel). Browsers treat `localhost` as secure for local

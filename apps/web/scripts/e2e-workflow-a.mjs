@@ -47,9 +47,9 @@ const SESSION_SECRET =
   process.env.SESSION_SECRET ??
   "e2e-session-secret-0123456789abcdef0123456789abcdef";
 const QA_EMAIL = process.env.QA_EMAIL ?? "qa@argus.local";
-const QA_PASSWORD = process.env.QA_PASSWORD ?? "qa-dev-password";
+const QA_PASSWORD = process.env.QA_PASSWORD ?? "qa123";
 const DEVELOPER_EMAIL = process.env.DEVELOPER_EMAIL ?? "dev@argus.local";
-const DEVELOPER_PASSWORD = process.env.DEVELOPER_PASSWORD ?? "dev-dev-password";
+const DEVELOPER_PASSWORD = process.env.DEVELOPER_PASSWORD ?? "dev123";
 
 const logs = { web: "", cdn: "" };
 

@@ -21,9 +21,9 @@ beforeEach(() => {
     "session-secret-0123456789abcdef0123456789",
   );
   vi.stubEnv("QA_EMAIL", "qa@argus.local");
-  vi.stubEnv("QA_PASSWORD", "qa-dev-password");
+  vi.stubEnv("QA_PASSWORD", "qa123");
   vi.stubEnv("DEVELOPER_EMAIL", "dev@argus.local");
-  vi.stubEnv("DEVELOPER_PASSWORD", "dev-dev-password");
+  vi.stubEnv("DEVELOPER_PASSWORD", "dev123");
   resetAuthConfigCache();
 });
 

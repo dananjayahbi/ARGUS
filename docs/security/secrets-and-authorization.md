@@ -17,8 +17,8 @@ variable.
 | `DRAFT_TOKEN_SECRET` | `apps/web` canvas + upload draft tokens | Mini PC app process | `apps/web/.env.local` / process env | Engineering lead | Rotating it invalidates every outstanding 30-minute draft link. |
 | `CDN_AUTH_TOKEN` | `apps/cdn` upload API; `apps/web` upload proxy; extension settings | Mini PC CDN process | `apps/cdn/.env` / process env; `chrome.storage.local` | Engineering lead | Rotate CDN and web together, then update extension settings. |
 | `SESSION_SECRET` | `apps/web` session JWT signing | Mini PC app process | `apps/web/.env.local` / process env | Engineering lead | Rotating it signs every dashboard user out. DB session rows remain until they expire. |
-| `QA_PASSWORD` | `apps/web` seed account | Mini PC app process | `apps/web/.env.local` / process env | QA lead | Used once to seed `QA_EMAIL`; changing the env value does not reset an existing hash. |
-| `DEVELOPER_PASSWORD` | `apps/web` seed account | Mini PC app process | `apps/web/.env.local` / process env | Developer lead | Same seed-only behaviour as `QA_PASSWORD`. |
+| `QA_PASSWORD` | `apps/web` seed account | Mini PC app process | `apps/web/.env.local` / process env | QA lead | Applied on startup; re-hashes `QA_EMAIL` if the stored hash no longer matches. |
+| `DEVELOPER_PASSWORD` | `apps/web` seed account | Mini PC app process | `apps/web/.env.local` / process env | Developer lead | Same startup-sync behaviour as `QA_PASSWORD`. |
 | Cloudflare Tunnel token / credentials | Cloudflare Tunnel on the Mini PC | Mini PC host | `cloudflared` service configuration (not in this repo) | Engineering lead | Covered by group 7 task 3. |
 
 The extension stores only `WORKSPACE_TOKEN` and `CDN_AUTH_TOKEN` in

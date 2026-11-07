@@ -7,13 +7,13 @@ const authEnvSchema = z.object({
   QA_EMAIL: z.string().email("QA_EMAIL must be a valid email"),
   QA_PASSWORD: z
     .string()
-    .min(8, "QA_PASSWORD must be at least 8 characters"),
+    .min(5, "QA_PASSWORD must be at least 5 characters"),
   DEVELOPER_EMAIL: z
     .string()
     .email("DEVELOPER_EMAIL must be a valid email"),
   DEVELOPER_PASSWORD: z
     .string()
-    .min(8, "DEVELOPER_PASSWORD must be at least 8 characters"),
+    .min(5, "DEVELOPER_PASSWORD must be at least 5 characters"),
 });
 
 export type AuthConfig = z.infer<typeof authEnvSchema>;

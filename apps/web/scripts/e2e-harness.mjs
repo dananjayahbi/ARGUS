@@ -35,9 +35,9 @@ export function e2eConfig() {
       process.env.SESSION_SECRET ??
       "e2e-session-secret-0123456789abcdef0123456789abcdef",
     qaEmail: process.env.QA_EMAIL ?? "qa@argus.local",
-    qaPassword: process.env.QA_PASSWORD ?? "qa-dev-password",
+    qaPassword: process.env.QA_PASSWORD ?? "qa123",
     developerEmail: process.env.DEVELOPER_EMAIL ?? "dev@argus.local",
-    developerPassword: process.env.DEVELOPER_PASSWORD ?? "dev-dev-password",
+    developerPassword: process.env.DEVELOPER_PASSWORD ?? "dev123",
   };
 }
 
