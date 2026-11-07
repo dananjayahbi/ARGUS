@@ -1,6 +1,19 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ink: #17313a;
+  --ink-soft: #2f4a52;
+  --muted: #72807f;
+  --cream: #f7f3ea;
+  --paper: #fdfbf6;
+  --paper-2: #f1ebdf;
+  --line: #ddd4c4;
+  --line-strong: #c9bca8;
+  --teal: #124a5a;
+  --amber: #e3a05c;
+  --amber-hover: #d08a43;
+  --good: #4f8a6d;
+  --bad: #b45f4d;
 }
 
 * {
@@ -13,17 +26,17 @@ body {
   display: grid;
   place-items: center;
   padding: 2rem;
-  background: #020617;
-  color: #e2e8f0;
+  background: var(--cream);
+  color: var(--ink);
 }
 
 .card {
   width: min(34rem, 100%);
-  border: 1px solid #1e293b;
+  border: 1px solid var(--line);
   border-radius: 1rem;
-  background: #0f172a;
+  background: var(--paper);
   padding: 2rem;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 22px 54px rgba(23, 49, 58, 0.14);
 }
 
 .brand {
@@ -34,27 +47,28 @@ body {
 }
 
 .brand-logo {
-  border-radius: 0.85rem;
-  box-shadow: 0 10px 26px rgba(34, 211, 238, 0.2);
+  border-radius: 50%;
+  box-shadow: 0 8px 18px rgba(18, 74, 90, 0.18);
 }
 
 .eyebrow {
   margin: 0;
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: #22d3ee;
+  color: var(--amber-hover);
 }
 
 h1 {
   margin: 0.2rem 0 0;
   font-size: 1.5rem;
+  color: var(--ink);
 }
 
 .muted {
   margin: 0 0 1.5rem;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.6;
 }
@@ -68,37 +82,41 @@ label {
   display: grid;
   gap: 0.4rem;
   font-size: 0.75rem;
-  color: #94a3b8;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 input {
   width: 100%;
-  border: 1px solid #334155;
+  border: 1px solid var(--line);
   border-radius: 0.5rem;
-  background: #020617;
-  color: #e2e8f0;
+  background: #fffdf9;
+  color: var(--ink);
   padding: 0.65rem 0.75rem;
   font: inherit;
 }
 
 input:focus {
   outline: none;
-  border-color: #06b6d4;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(18, 74, 90, 0.13);
 }
 
 button {
-  border: 0;
+  border: 1px solid var(--amber);
   border-radius: 0.5rem;
-  background: #06b6d4;
-  color: #020617;
+  background: var(--amber);
+  color: var(--ink);
   padding: 0.7rem 1rem;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 8px 18px rgba(227, 160, 92, 0.2);
 }
 
 button:hover {
-  background: #22d3ee;
+  border-color: var(--amber-hover);
+  background: var(--amber-hover);
 }
 
 .status {
@@ -108,9 +126,9 @@ button:hover {
 }
 
 .status.ok {
-  color: #6ee7b7;
+  color: var(--good);
 }
 
 .status.error {
-  color: #fda4af;
+  color: var(--bad);
 }

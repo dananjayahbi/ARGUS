@@ -66,6 +66,7 @@ for (const file of [
   "content/fullpage.js",
   "content/overlay.css",
   "content/overlay.js",
+  "icons/argus-logo.png",
 ]) {
   if (!existsSync(path.join(source, file))) {
     errors.push(`missing file: ${file}`);
@@ -137,6 +138,8 @@ for (const marker of [
   'id="argus-text-cancel"',
   'id="argus-quick-cancel"',
   'class="argus-fab-logo"',
+  'class="argus-logo-img"',
+  'const LOGO_DATA_URL = "data:image/png;base64,',
   "function allCaptures()",
 ]) {
   if (!overlay.includes(marker)) {
@@ -148,6 +151,39 @@ if (!/function allCaptures\(\)[\s\S]{0,300}lastCapture/.test(overlay)) {
   errors.push(
     "content/overlay.js must include the latest capture in the thumbnail gallery",
   );
+}
+
+// UI update #4 follow-up: every capture is an equal thumbnail. The preview
+// helper must not render a second, larger image of one capture.
+const previewStart = overlay.indexOf("function renderPreview()");
+const previewEnd = overlay.indexOf("function clearPreview(");
+if (previewStart === -1 || previewEnd === -1 || previewEnd <= previewStart) {
+  errors.push("content/overlay.js must define renderPreview before clearPreview");
+} else if (overlay.slice(previewStart, previewEnd).includes('createElement("img")')) {
+  errors.push(
+    "content/overlay.js renderPreview must not render a large preview image; all captures are thumbnails",
+  );
+}
+
+// The flat teal/amber/cream palette replaced the earlier gradient theme.
+const overlayCss = readFileSync(
+  path.join(source, "content", "overlay.css"),
+  "utf8",
+);
+if (/gradient\(/i.test(overlayCss)) {
+  errors.push(
+    "content/overlay.css must use flat colors; gradients are not allowed",
+  );
+}
+
+// No capture may be visually singled out: every gallery item is an identical
+// thumbnail with the same frame and size.
+for (const forbidden of ["argus-thumb-badge", "is-current"]) {
+  if (overlay.includes(forbidden) || overlayCss.includes(forbidden)) {
+    errors.push(
+      `captures must not be visually singled out; found special treatment marker: ${forbidden}`,
+    );
+  }
 }
 
 for (const icon of Object.values(manifest.icons ?? {})) {

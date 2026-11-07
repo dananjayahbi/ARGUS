@@ -21,7 +21,7 @@ The loadable extension is written to `dist/`. `dist/` is gitignored.
    previously loaded an older build, click **Reload** on the ARGUS entry so
    the new `<all_urls>` permission and overlay content script take effect,
    then reload the test page itself.)
-4. Any open http(s) web page now shows the floating **ARGUS eye** logo at the
+4. Any open http(s) web page now shows the floating ARGUS logo at the
    bottom-right corner. Click it to open the overlay popup (no page push,
    no layout shift). The same logo is used for the toolbar icon and the
    extension settings page.
@@ -56,11 +56,14 @@ The overlay is fully wired:
 - Manifest V3 with `activeTab`, `scripting`, `storage`, `tabs` and host
   permissions. There is no side panel.
 - A floating ARGUS logo is injected on every http(s) page, and the toolbar
-  action toggles the same overlay popup. The logo is an inline SVG eye inside
-  a capture frame, so page CSP cannot hide it. PNG variants under
-  `src/icons/` power the toolbar/extension icons and the options page.
+  action toggles the same overlay popup. The provided aperture/check mark is
+  embedded as a PNG data URL, so page CSP cannot hide it and the overlay still
+  works after the extension context is invalidated. The source image is kept at
+  `src/icons/argus-logo-source.png`; generated sizes under `src/icons/` power
+  the toolbar/extension icons and the options page.
 - The popup leads with a highlighted **Area snip** card. Full page, Quick
-  submit, Text report and Harvest are compact icon shortcuts underneath.
+  submit, Text only and Harvest are compact icon shortcuts underneath. The
+  palette is flat deep teal, warm amber and cream — no gradients.
 - **⚙ Settings** in the popup header opens the options page for the two tokens
   and the project ID, so configuration is reachable without remembering the
   toolbar menu.
@@ -79,9 +82,11 @@ The overlay is fully wired:
 - **Harvest** renders the page metadata and the latest console/network errors
   inside the popup.
 - **Captures for this issue** is a thumbnail gallery of every attached image,
-  including the newest capture (marked **New**). Each thumbnail has a remove
-  button, **+ Add another screenshot** is visually highlighted, and **Clear
-  all** resets the whole issue. **Use this screenshot** uploads the raw PNG to
+  including the newest capture. Every capture uses the same thumbnail size and
+  the same frame; there is no separate larger preview and no highlighted
+  thumbnail. Each thumbnail has a remove button, **+ Add another screenshot** is
+  visually highlighted, and **Clear all** resets the whole issue. **Use this
+  screenshot** uploads the raw PNG to
   the CDN, creates a draft and opens the canvas editor. When captures have
   been staged, it uploads every staged screenshot plus the current preview
   into a single draft and records the captured page URLs for each image.
