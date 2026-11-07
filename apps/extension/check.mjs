@@ -109,6 +109,20 @@ if (overlay.includes('createElement("style")')) {
   );
 }
 
+for (const marker of [
+  'id="argus-add"',
+  'id="argus-staged-list"',
+  'id="argus-create-staged"',
+  'type: "ARGUS_DISPATCH"',
+  "captures,",
+]) {
+  if (!overlay.includes(marker)) {
+    errors.push(
+      `content/overlay.js is missing multi-screenshot marker: ${marker}`,
+    );
+  }
+}
+
 if (errors.length > 0) {
   console.error(errors.join("\n"));
   process.exit(1);

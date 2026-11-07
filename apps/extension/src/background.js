@@ -11,6 +11,17 @@ import { dispatchCapture } from "./shared/dispatch.js";
 import { submitTextReport } from "./shared/text-report.js";
 import { createMessageHandler } from "./shared/background-handlers.js";
 
+// The overlay (a content script) stages screenshots in storage.session so a
+// multi-page capture survives navigation. Session storage is restricted to
+// trusted contexts by default, so expose it to content scripts explicitly.
+try {
+  chrome.storage.session
+    .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
+    .catch(() => {});
+} catch {
+  // Older Chromium builds may not support setAccessLevel.
+}
+
 function isCapturableUrl(url) {
   if (!url) return false;
   try {

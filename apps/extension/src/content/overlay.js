@@ -58,9 +58,24 @@
           <p id="argus-text-status" class="argus-status" hidden></p>
         </section>
 
+        <section id="argus-staged" class="argus-staged">
+          <div class="argus-staged-head">
+            <span>Captures for this issue</span>
+            <span id="argus-staged-count" class="argus-badge">0</span>
+          </div>
+          <div id="argus-staged-list" class="argus-staged-list"></div>
+          <button type="button" id="argus-create-staged" class="argus-btn primary" hidden>
+            Create issue with 0 screenshots
+          </button>
+          <button type="button" id="argus-clear-staged" class="argus-btn ghost" hidden>
+            Clear all captures
+          </button>
+        </section>
+
         <div id="argus-preview" class="argus-preview"></div>
         <div id="argus-capture-actions" class="argus-capture-actions" hidden>
           <button type="button" id="argus-use" class="argus-btn primary">Use this screenshot</button>
+          <button type="button" id="argus-add" class="argus-btn">Add to issue</button>
           <button type="button" id="argus-discard" class="argus-btn">Take another one</button>
         </div>
         <ol id="argus-steps" class="argus-steps" hidden></ol>
@@ -89,6 +104,10 @@
   const textPriorityLabel = $("#argus-text-priority-label");
   const textSubmit = $("#argus-text-submit");
   const textStatus = $("#argus-text-status");
+  const stagedList = $("#argus-staged-list");
+  const stagedCount = $("#argus-staged-count");
+  const createStagedBtn = $("#argus-create-staged");
+  const clearStagedBtn = $("#argus-clear-staged");
   const buttons = {
     area: $("#argus-area"),
     full: $("#argus-full"),
@@ -96,13 +115,15 @@
     harvest: $("#argus-harvest"),
     settings: $("#argus-settings"),
     use: $("#argus-use"),
+    add: $("#argus-add"),
     discard: $("#argus-discard"),
   };
 
-  const STEP_LABELS = ["Upload raw capture", "Create draft", "Open editor"];
+  const STEP_LABELS = ["Upload raw captures", "Create draft", "Open editor"];
 
   let settings = null;
   let lastCapture = null;
+  let stagedCaptures = [];
   let busy = false;
 
   function setStatus(message, tone = "") {
@@ -569,6 +590,7 @@
     steps.hidden = true;
     steps.replaceChildren();
     setDispatchStatus("");
+    updateCaptureButtons();
   }
 
   function clearPreview(message = "No capture yet.") {
@@ -582,6 +604,119 @@
     steps.hidden = true;
     steps.replaceChildren();
     setDispatchStatus("");
+    updateCaptureButtons();
+  }
+
+  function captureTitle(capture) {
+    return (
+      capture?.snapshot?.environment_info?.title ||
+      capture?.pageTitle ||
+      capture?.pageUrl ||
+      "Untitled capture"
+    );
+  }
+
+  function totalCaptureCount() {
+    return stagedCaptures.length + (lastCapture ? 1 : 0);
+  }
+
+  function updateCaptureButtons() {
+    const total = totalCaptureCount();
+
+    buttons.use.textContent =
+      total > 1 ? `Use ${total} screenshots` : "Use this screenshot";
+    buttons.add.disabled = !lastCapture || busy;
+    buttons.add.hidden = !lastCapture;
+    buttons.use.disabled = busy;
+    buttons.discard.disabled = busy;
+
+    stagedCount.textContent = String(stagedCaptures.length);
+    createStagedBtn.hidden = stagedCaptures.length === 0;
+    createStagedBtn.disabled = total === 0 || busy;
+    createStagedBtn.textContent = `Create issue with ${total} screenshot${
+      total === 1 ? "" : "s"
+    }`;
+    clearStagedBtn.hidden = stagedCaptures.length === 0;
+    clearStagedBtn.disabled = busy;
+  }
+
+  function renderStagedCaptures() {
+    stagedList.replaceChildren();
+
+    if (stagedCaptures.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "argus-muted";
+      empty.textContent =
+        "No screenshots staged yet. Capture one, then choose Add to issue to keep it on this issue.";
+      stagedList.append(empty);
+    }
+
+    stagedCaptures.forEach((capture, index) => {
+      const item = document.createElement("div");
+      item.className = "argus-staged-item";
+
+      const image = document.createElement("img");
+      image.src = capture.dataUrl;
+      image.alt = `Staged capture ${index + 1}`;
+
+      const label = document.createElement("span");
+      label.className = "argus-staged-label";
+      label.textContent = `#${index + 1} · ${captureTitle(capture)}`;
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "argus-staged-remove";
+      remove.title = "Remove this screenshot";
+      remove.setAttribute("aria-label", `Remove screenshot ${index + 1}`);
+      remove.textContent = "×";
+      remove.addEventListener("click", () => {
+        stagedCaptures = stagedCaptures.filter(
+          (_, captureIndex) => captureIndex !== index,
+        );
+        void persistStagedCaptures();
+        renderStagedCaptures();
+      });
+
+      item.append(image, label, remove);
+      stagedList.append(item);
+    });
+
+    updateCaptureButtons();
+  }
+
+  async function persistStagedCaptures() {
+    try {
+      await chrome.storage.session.set({
+        "argus.stagedCaptures": stagedCaptures,
+      });
+    } catch {
+      // Session storage has a quota; keep the in-memory copy if it is exceeded.
+    }
+  }
+
+  async function addCurrentCapture() {
+    if (!lastCapture) {
+      return;
+    }
+
+    stagedCaptures = [...stagedCaptures, lastCapture];
+    await persistStagedCaptures();
+    renderStagedCaptures();
+    clearPreview(
+      `Screenshot added. ${stagedCaptures.length} capture${
+        stagedCaptures.length === 1 ? "" : "s"
+      } ready for this issue.`,
+    );
+    setStatus(
+      "Capture another screenshot, or create the issue from the captures list.",
+      "ok",
+    );
+  }
+
+  function clearStagedCaptures() {
+    stagedCaptures = [];
+    void persistStagedCaptures();
+    renderStagedCaptures();
   }
 
   function renderSteps(activeIndex, errorIndex = -1) {
@@ -711,6 +846,7 @@
 
       const capture = await cropDataUrl(shot.dataUrl, rect);
       capture.pageUrl = location.href;
+      capture.pageTitle = document.title;
       capture.mode = "area";
       capture.snapshot = await captureSnapshot();
       lastCapture = capture;
@@ -785,6 +921,7 @@
 
       const capture = await stitchFrames(frames, metrics);
       capture.pageUrl = location.href;
+      capture.pageTitle = document.title;
       capture.mode = "full_page";
       capture.snapshot = await captureSnapshot();
       lastCapture = capture;
@@ -808,7 +945,13 @@
 
   async function dispatchCapture() {
     if (busy) return;
-    if (!lastCapture) {
+
+    const captures = [
+      ...stagedCaptures,
+      ...(lastCapture ? [lastCapture] : []),
+    ];
+
+    if (captures.length === 0) {
       setDispatchStatus("Capture a screenshot first.", "warn");
       return;
     }
@@ -818,15 +961,14 @@
     }
 
     busy = true;
-    buttons.use.disabled = true;
-    buttons.discard.disabled = true;
+    updateCaptureButtons();
     setDispatchStatus("");
     renderSteps(0);
 
     try {
       const result = await send({
         type: "ARGUS_DISPATCH",
-        capture: lastCapture,
+        captures,
       });
 
       if (!result?.ok) {
@@ -835,6 +977,14 @@
         return;
       }
 
+      stagedCaptures = [];
+      await persistStagedCaptures();
+      renderStagedCaptures();
+      clearPreview(
+        `Issue created with ${captures.length} screenshot${
+          captures.length === 1 ? "" : "s"
+        }.`,
+      );
       renderSteps(3);
       setDispatchStatus(
         "Draft created. The canvas editor is opening in a new tab.",
@@ -842,8 +992,7 @@
       );
     } finally {
       busy = false;
-      buttons.use.disabled = false;
-      buttons.discard.disabled = false;
+      updateCaptureButtons();
     }
   }
 
@@ -978,8 +1127,17 @@
   buttons.use.addEventListener("click", () => {
     void dispatchCapture();
   });
+  buttons.add.addEventListener("click", () => {
+    void addCurrentCapture();
+  });
   buttons.discard.addEventListener("click", () => {
     clearPreview();
+  });
+  createStagedBtn.addEventListener("click", () => {
+    void dispatchCapture();
+  });
+  clearStagedBtn.addEventListener("click", () => {
+    clearStagedCaptures();
   });
   textPriority.addEventListener("input", updatePriorityLabel);
   textSubmit.addEventListener("click", () => {
@@ -1022,4 +1180,18 @@
 
   updatePriorityLabel();
   clearPreview();
+  renderStagedCaptures();
+
+  chrome.storage.session
+    .get("argus.stagedCaptures")
+    .then((stored) => {
+      if (Array.isArray(stored["argus.stagedCaptures"])) {
+        stagedCaptures = stored["argus.stagedCaptures"];
+      }
+      renderStagedCaptures();
+    })
+    .catch(() => {
+      // Session storage may be unavailable; keep the in-memory list.
+      renderStagedCaptures();
+    });
 })();

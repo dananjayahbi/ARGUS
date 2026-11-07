@@ -16,6 +16,10 @@
   color: #e2e8f0;
 }
 
+#argus-overlay [hidden] {
+  display: none !important;
+}
+
 #argus-overlay .argus-fab {
   width: 52px;
   height: 52px;
@@ -140,13 +144,98 @@
 
 #argus-overlay .argus-capture-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
 
 #argus-overlay .argus-capture-actions .argus-btn {
   margin: 0;
-  flex: 1;
+  flex: 1 1 30%;
+  min-width: 90px;
+}
+
+#argus-overlay .argus-staged {
+  margin-top: 10px;
+  border-top: 1px solid #1e293b;
+  padding-top: 10px;
+}
+
+#argus-overlay .argus-staged-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+#argus-overlay .argus-badge {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  background: #164e63;
+  color: #a5f3fc;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+#argus-overlay .argus-staged-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+#argus-overlay .argus-staged-item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #020617;
+  padding: 4px;
+}
+
+#argus-overlay .argus-staged-item img {
+  width: 56px;
+  height: 42px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 4px;
+}
+
+#argus-overlay .argus-staged-label {
+  overflow: hidden;
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#argus-overlay .argus-staged-remove {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid #475569;
+  background: transparent;
+  color: #fda4af;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#argus-overlay .argus-staged-remove:hover {
+  background: #7f1d1d;
+  color: #fecdd3;
 }
 
 #argus-overlay .argus-steps {
