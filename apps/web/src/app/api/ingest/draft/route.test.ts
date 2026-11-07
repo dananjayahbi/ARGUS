@@ -136,6 +136,42 @@ describe("POST /api/ingest/draft", () => {
     expect(response.status).toBe(201);
   });
 
+  it("stores extra captured screenshots as supplementary assets", async () => {
+    queryMock
+      .mockResolvedValueOnce(queryResult([{ id: PROJECT_ID, key: "ARG" }]))
+      .mockResolvedValueOnce(queryResult([{ id: ISSUE_ID, issue_number: 9 }]))
+      .mockResolvedValueOnce(queryResult([]));
+
+    const response = await POST(
+      request(
+        payload({
+          supplementary_assets: [
+            {
+              url: "https://cdn.example/raw/2026/11/second.png",
+              asset_type: "image/png",
+            },
+            {
+              url: "https://cdn.example/raw/2026/11/third.png",
+              asset_type: "image/png",
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(queryMock).toHaveBeenCalledTimes(3);
+    const assetCall = queryMock.mock.calls[2] as [string, unknown[]];
+    expect(assetCall[0]).toContain("INSERT INTO issue_supplementary_assets");
+    expect(assetCall[1]).toEqual([
+      ISSUE_ID,
+      "https://cdn.example/raw/2026/11/second.png",
+      "image/png",
+      "https://cdn.example/raw/2026/11/third.png",
+      "image/png",
+    ]);
+  });
+
   it("rejects a screenshot without a raw image before querying", async () => {
     const response = await POST(request(payload({ raw_image_url: undefined })));
 

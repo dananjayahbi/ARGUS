@@ -115,6 +115,27 @@ async function handlePOST(request: Request) {
     );
 
     const issue = result.rows[0];
+
+    if (payload.supplementary_assets?.length) {
+      const placeholders = payload.supplementary_assets
+        .map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`)
+        .join(", ");
+      const params = [
+        issue.id,
+        ...payload.supplementary_assets.flatMap((asset) => [
+          asset.url,
+          asset.asset_type,
+        ]),
+      ];
+
+      await query(
+        `INSERT INTO issue_supplementary_assets
+           (issue_id, asset_url, asset_type)
+         VALUES ${placeholders}`,
+        params,
+      );
+    }
+
     const editorUrl = `${requestOrigin(request)}/canvas/${issue.id}?token=${encodeURIComponent(token)}`;
 
     return NextResponse.json(

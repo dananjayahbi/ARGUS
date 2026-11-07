@@ -70,3 +70,86 @@ export function parseCapturedPages(environmentInfo: unknown): CapturedPage[] {
 
   return pages;
 }
+
+export interface CaptureImage {
+  url: string;
+  pageUrl: string | null;
+  title: string | null;
+  capturedAt: string | null;
+  primary: boolean;
+}
+
+/**
+ * Build the ordered list of screenshots attached to an issue.
+ *
+ * Primary raw image first, then the supplementary assets stored on the issue,
+ * then any captured-page asset URLs resolved from telemetry. Extra URLs (for
+ * example a pasted background that has not been uploaded yet) are appended
+ * last so the editor can still display and select them.
+ */
+export function collectCaptureImages({
+  environmentInfo,
+  primaryUrl,
+  supplementaryAssets,
+  extraUrls = [],
+}: {
+  environmentInfo: unknown;
+  primaryUrl: string | null | undefined;
+  supplementaryAssets: Array<{ url: string }>;
+  extraUrls?: string[];
+}): CaptureImage[] {
+  const pages = parseCapturedPages(environmentInfo);
+  const pagesByAsset = new Map<string, CapturedPage>();
+  for (const page of pages) {
+    if (page.assetUrl) {
+      pagesByAsset.set(page.assetUrl, page);
+    }
+  }
+
+  const candidates: Array<{ url: string; primary: boolean }> = [];
+  if (primaryUrl) {
+    candidates.push({ url: primaryUrl, primary: true });
+  }
+  // Prefer telemetry order: the extension records captures in the order the
+  // operator took them, which is more meaningful than database insert order.
+  for (const page of pages) {
+    if (page.assetUrl) {
+      candidates.push({ url: page.assetUrl, primary: false });
+    }
+  }
+  for (const asset of supplementaryAssets) {
+    if (asset?.url) {
+      candidates.push({ url: asset.url, primary: false });
+    }
+  }
+  for (const url of extraUrls) {
+    if (url) {
+      candidates.push({ url, primary: false });
+    }
+  }
+
+  const seen = new Set<string>();
+  const images: CaptureImage[] = [];
+  const fallbackPage = pages[0] ?? null;
+
+  for (const candidate of candidates) {
+    if (seen.has(candidate.url)) {
+      continue;
+    }
+    seen.add(candidate.url);
+
+    const page =
+      pagesByAsset.get(candidate.url) ??
+      (candidate.url === primaryUrl ? fallbackPage : null);
+
+    images.push({
+      url: candidate.url,
+      pageUrl: page?.url ?? null,
+      title: page?.title ?? null,
+      capturedAt: page?.capturedAt ?? null,
+      primary: candidate.primary,
+    });
+  }
+
+  return images;
+}

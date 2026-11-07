@@ -111,6 +111,7 @@ export interface CanvasDraftData {
   canvas_state: unknown;
   environment_info: unknown;
   console_logs: unknown;
+  supplementary_assets: Array<{ url: string; asset_type: string }>;
   project_key: string;
   project_name: string;
 }

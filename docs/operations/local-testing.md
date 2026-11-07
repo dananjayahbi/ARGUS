@@ -223,8 +223,10 @@ options page), then use the high ports:
 - Project: the ARG project UUID (`psql … -tAc "select id from projects where key='ARG'"`)
 
 Then on any http(s) page: click the floating **A** (or the toolbar icon) →
-**Harvest now** → **Area snip** → **Use this screenshot** → annotate in
-canvas → Submit → card appears on the board.
+**Harvest now** → **Area snip** → **Add to issue**. Repeat the capture for as
+many screenshots as the issue needs, then choose **Use N screenshots** →
+select an image in the canvas **Attached images** panel → annotate → Submit →
+card appears on the board.
 
 ## 6. Automated gates (great for regression)
 

@@ -116,9 +116,11 @@ the main collaborative workflow this system exists for.
 
 The other entry point is the canvas editor. When a capture is made (by the
 extension, or by the programmatic ingest I used for your welcome card), you get
-a tokenized link like the canvas URL for the welcome issue. Opening it shows
-the Bug configuration panel with the screenshot loaded. Draw at least one
-annotation (pen, shape, text, or redaction), then submit. The issue becomes
+a tokenized link like the canvas URL for the welcome issue. Opening it shows an
+**Attached images** panel on the left with every screenshot on the issue —
+click one to make it the image you are annotating. The toolbar above the canvas
+uses icons for select, pen, text, rectangle, arrow, numbered badge and
+redaction. Draw at least one annotation, then submit. The issue becomes
 **Pending** with both the annotated image and the vector scene stored.
 
 ### 6. (Optional) The Chrome extension
@@ -126,8 +128,9 @@ annotation (pen, shape, text, or redaction), then submit. The issue becomes
 The extension adds a floating **A** button to every web page. Click it (or the
 toolbar icon) to open the capture popup: **Area snip**, **Full page**,
 **Text-only report** and **Harvest now** all work from that popup. Screenshots
-go into this same pipeline: choose **Use this screenshot** to upload the raw
-image and open the canvas editor.
+go into this same pipeline: take a capture, choose **Add to issue**, repeat for
+as many screenshots as you need, then choose **Use N screenshots** to upload
+them all into one draft and open the canvas editor.
 
 Load it from `apps\extension\dist` (run `npm run build` in
 `apps\extension` first). Set its App URL to **http://localhost:13130** and its

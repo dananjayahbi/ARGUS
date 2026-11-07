@@ -38,23 +38,28 @@ function jsonResponse(body, status = 200) {
 
 function makeFetch(overrides = {}) {
   const calls = [];
+  let uploadCount = 0;
   const fetchImpl = async (url, init) => {
     calls.push({ url: String(url), init });
 
-    if (String(url) === capture.dataUrl) {
+    if (String(url).startsWith("data:image")) {
       return { blob: async () => new Blob(["png"], { type: "image/png" }) };
     }
     if (String(url).endsWith("/api/upload")) {
-      return (
-        overrides.upload ??
-        jsonResponse(
-          {
-            success: true,
-            url: "http://cdn.test/raw/x.png",
-            file_size_bytes: 3,
-          },
-          201,
-        )
+      if (overrides.upload) {
+        return overrides.upload;
+      }
+      uploadCount += 1;
+      return jsonResponse(
+        {
+          success: true,
+          url:
+            uploadCount === 1
+              ? "http://cdn.test/raw/x.png"
+              : `http://cdn.test/raw/x-${uploadCount}.png`,
+          file_size_bytes: 3,
+        },
+        201,
       );
     }
     if (String(url).endsWith("/api/ingest/draft")) {
@@ -161,7 +166,75 @@ async function testIngestFailure() {
   );
 }
 
+async function testMultipleCaptures() {
+  const { fetchImpl, calls } = makeFetch();
+  const second = {
+    ...capture,
+    dataUrl: "data:image/png;base64,BBBB",
+    pageUrl: "https://example.com/second",
+    capturedAt: "2026-01-01T00:00:01.000Z",
+    snapshot: {
+      environment_info: {
+        url: "https://example.com/second",
+        title: "Second page",
+      },
+      console_logs: [],
+    },
+  };
+
+  const result = await dispatchCapture({
+    captures: [{ ...capture, capturedAt: "2026-01-01T00:00:00.000Z" }, second],
+    settings,
+    fetchImpl,
+    createTab: async () => undefined,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.captureCount, 2);
+  assert.deepEqual(result.uploadUrls, [
+    "http://cdn.test/raw/x.png",
+    "http://cdn.test/raw/x-2.png",
+  ]);
+  assert.equal(
+    calls.filter((call) => call.url.endsWith("/api/upload")).length,
+    2,
+  );
+
+  const ingestCall = calls.find((call) =>
+    call.url.endsWith("/api/ingest/draft"),
+  );
+  const payload = JSON.parse(ingestCall.init.body);
+  assert.equal(payload.raw_image_url, "http://cdn.test/raw/x.png");
+  assert.deepEqual(payload.supplementary_assets, [
+    { url: "http://cdn.test/raw/x-2.png", asset_type: "image/png" },
+  ]);
+  assert.equal(payload.environment_info.captured_pages.length, 2);
+  assert.deepEqual(
+    payload.environment_info.captured_pages.map((page) => ({
+      url: page.url,
+      title: page.title,
+      asset_url: page.asset_url,
+      kind: page.kind,
+    })),
+    [
+      {
+        url: "https://example.com",
+        title: "Example",
+        asset_url: "http://cdn.test/raw/x.png",
+        kind: "primary",
+      },
+      {
+        url: "https://example.com/second",
+        title: "Second page",
+        asset_url: "http://cdn.test/raw/x-2.png",
+        kind: "supplementary",
+      },
+    ],
+  );
+}
+
 await testSuccess();
+await testMultipleCaptures();
 await testCdnFailure();
 await testIngestFailure();
 console.log("Dispatch flow tests passed.");

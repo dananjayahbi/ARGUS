@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createEmptyScene,
@@ -19,8 +19,11 @@ import {
   updateSceneNode,
 } from "@/lib/canvas-scene";
 import { audioExtension } from "@/lib/audio";
+import { collectCaptureImages } from "@/lib/captured-pages";
 
 import { CanvasSidePanel } from "./CanvasSidePanel";
+import { CanvasToolIcon } from "./CanvasToolIcon";
+import { CaptureImagePanel } from "./CaptureImagePanel";
 import { useCanvasViewport } from "./useCanvasViewport";
 
 const CanvasStage = dynamic(
@@ -35,15 +38,25 @@ const CanvasStage = dynamic(
   },
 );
 
-const TOOLS: Array<{ id: CanvasTool; label: string; short: string }> = [
-  { id: "select", label: "Select", short: "V" },
-  { id: "pen", label: "Pen", short: "P" },
-  { id: "text", label: "Text", short: "T" },
-  { id: "rect", label: "Rectangle", short: "R" },
-  { id: "arrow", label: "Arrow", short: "A" },
-  { id: "badge", label: "Numbered badge", short: "1" },
-  { id: "blur", label: "Blur or pixelate", short: "B" },
+const TOOLS: Array<{ id: CanvasTool; label: string }> = [
+  { id: "select", label: "Select (V)" },
+  { id: "pen", label: "Pen (P)" },
+  { id: "text", label: "Text (T)" },
+  { id: "rect", label: "Rectangle (R)" },
+  { id: "arrow", label: "Arrow (A)" },
+  { id: "badge", label: "Numbered badge (1)" },
+  { id: "blur", label: "Blur or pixelate (B)" },
 ];
+
+function initialCanvasState(issue: CanvasDraftData) {
+  const restored = parseCanvasScene(issue.canvas_state);
+  const scene =
+    restored ?? createEmptyScene(1, 1, issue.raw_image_url ?? undefined);
+  return {
+    scene,
+    backgroundUrl: scene.background ?? issue.raw_image_url ?? null,
+  };
+}
 
 export function CanvasEditorShell({
   issue,
@@ -52,11 +65,10 @@ export function CanvasEditorShell({
   issue: CanvasDraftData;
   token: string;
 }) {
+  const initialCanvas = useMemo(() => initialCanvasState(issue), [issue]);
+
   const [activeTool, setActiveTool] = useState<CanvasTool>("select");
-  const [scene, setScene] = useState<CanvasScene>(() => {
-    const restored = parseCanvasScene(issue.canvas_state);
-    return restored ?? createEmptyScene(1, 1, issue.raw_image_url ?? undefined);
-  });
+  const [scene, setScene] = useState<CanvasScene>(initialCanvas.scene);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [penColor, setPenColor] = useState("#f43f5e");
   const [penWidth, setPenWidth] = useState(3);
@@ -67,9 +79,11 @@ export function CanvasEditorShell({
   );
   const [lastRedactionId, setLastRedactionId] = useState<string | null>(null);
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(
-    issue.raw_image_url,
+    initialCanvas.backgroundUrl,
   );
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const sceneCache = useRef<Record<string, CanvasScene>>({});
+  const backgroundFiles = useRef<Record<string, File>>({});
   const [supplementaryAssets, setSupplementaryAssets] = useState<
     Array<{ id: string; file: File; previewUrl: string }>
   >([]);
@@ -107,6 +121,44 @@ export function CanvasEditorShell({
   const effectiveTool: CanvasTool | "pan" = viewport.spacePressed
     ? "pan"
     : activeTool;
+
+  const captureImages = useMemo(
+    () =>
+      collectCaptureImages({
+        environmentInfo: issue.environment_info,
+        primaryUrl: issue.raw_image_url,
+        supplementaryAssets: issue.supplementary_assets.filter((asset) =>
+          asset.asset_type.startsWith("image/"),
+        ),
+        extraUrls: backgroundUrl ? [backgroundUrl] : [],
+      }),
+    [
+      backgroundUrl,
+      issue.environment_info,
+      issue.raw_image_url,
+      issue.supplementary_assets,
+    ],
+  );
+
+  const handleSelectCapture = useCallback(
+    (url: string) => {
+      if (url === backgroundUrl) {
+        return;
+      }
+
+      if (backgroundUrl) {
+        sceneCache.current[backgroundUrl] = scene;
+      }
+      const cached = sceneCache.current[url];
+      setBackgroundUrl(url);
+      setBackgroundFile(backgroundFiles.current[url] ?? null);
+      setSelectedId(null);
+      setPendingRedaction(null);
+      setLastRedactionId(null);
+      setScene(cached ?? createEmptyScene(1, 1, url));
+    },
+    [backgroundUrl, scene],
+  );
 
   const handleAddNode = useCallback((node: CanvasNode) => {
     setScene((current) => ({
@@ -269,17 +321,20 @@ export function CanvasEditorShell({
       return;
     }
 
+    if (backgroundUrl) {
+      sceneCache.current[backgroundUrl] = scene;
+    }
+    backgroundFiles.current[pasteCandidate.previewUrl] = pasteCandidate.file;
+
     setBackgroundUrl(pasteCandidate.previewUrl);
     setBackgroundFile(pasteCandidate.file);
-    setScene((current) => ({
-      ...current,
-      background: pasteCandidate.previewUrl,
-      nodes: [],
-    }));
+    setScene(createEmptyScene(1, 1, pasteCandidate.previewUrl));
     setSelectedId(null);
+    setPendingRedaction(null);
+    setLastRedactionId(null);
     setPasteCandidate(null);
     setConfirmReplace(false);
-  }, [confirmReplace, pasteCandidate, scene.nodes.length]);
+  }, [backgroundUrl, confirmReplace, pasteCandidate, scene]);
 
   const handleRemoveSupplementaryAsset = useCallback((id: string) => {
     setSupplementaryAssets((current) => {
@@ -586,6 +641,14 @@ export function CanvasEditorShell({
       </header>
 
       <div className="flex min-h-0 flex-1">
+        <aside className="w-56 shrink-0 border-r border-slate-800 bg-slate-950 lg:w-64">
+          <CaptureImagePanel
+            images={captureImages}
+            activeUrl={backgroundUrl}
+            onSelect={handleSelectCapture}
+          />
+        </aside>
+
         <section className="relative min-w-0 flex-1 bg-slate-900">
           <CanvasStage
             imageUrl={backgroundUrl}
@@ -613,6 +676,7 @@ export function CanvasEditorShell({
                 key={tool.id}
                 type="button"
                 title={tool.label}
+                aria-label={tool.label}
                 aria-pressed={activeTool === tool.id}
                 onClick={() => {
                   setActiveTool(tool.id);
@@ -620,13 +684,13 @@ export function CanvasEditorShell({
                     setSelectedId(null);
                   }
                 }}
-                className={`h-8 w-8 rounded-md text-xs font-semibold transition ${
+                className={`grid h-8 w-8 place-items-center rounded-md transition ${
                   activeTool === tool.id
                     ? "bg-cyan-500 text-slate-950"
                     : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                 }`}
               >
-                {tool.short}
+                <CanvasToolIcon tool={tool.id} />
               </button>
             ))}
           </div>

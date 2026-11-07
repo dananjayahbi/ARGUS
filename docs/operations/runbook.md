@@ -295,8 +295,9 @@ npm run build
      and paste the UUID.
 4. Reload the extension after changing settings.
 5. Verify: **Harvest now** shows metadata; **Area snip** produces a preview;
-   **Use this screenshot** opens the canvas; **Text-only report** creates a
-   pending issue without a canvas.
+   **Add to issue** stages it and **Use N screenshots** opens the canvas with
+   every capture in the **Attached images** panel; **Text-only report**
+   creates a pending issue without a canvas.
 
 The extension stores tokens only in `chrome.storage.local` on that machine.
 

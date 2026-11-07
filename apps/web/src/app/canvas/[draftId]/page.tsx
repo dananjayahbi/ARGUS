@@ -26,7 +26,15 @@ interface CanvasIssueRow extends QueryResultRow {
   project_name: string;
 }
 
-function toDraftData(issue: CanvasIssueRow): CanvasDraftData {
+interface CanvasAssetRow extends QueryResultRow {
+  asset_url: string;
+  asset_type: string;
+}
+
+function toDraftData(
+  issue: CanvasIssueRow,
+  assets: CanvasAssetRow[],
+): CanvasDraftData {
   return {
     id: issue.id,
     issue_number: issue.issue_number,
@@ -40,6 +48,10 @@ function toDraftData(issue: CanvasIssueRow): CanvasDraftData {
     canvas_state: issue.canvas_state,
     environment_info: issue.environment_info,
     console_logs: issue.console_logs,
+    supplementary_assets: assets.map((asset) => ({
+      url: asset.asset_url,
+      asset_type: asset.asset_type,
+    })),
     project_key: issue.project_key,
     project_name: issue.project_name,
   };
@@ -66,6 +78,7 @@ export default async function CanvasPage({
   }
 
   let issue: CanvasIssueRow | undefined;
+  let assets: CanvasAssetRow[] = [];
   try {
     const result = await query<CanvasIssueRow>(
       `SELECT i.id,
@@ -89,6 +102,17 @@ export default async function CanvasPage({
       [draftId],
     );
     issue = result.rows[0];
+
+    if (issue) {
+      const assetResult = await query<CanvasAssetRow>(
+        `SELECT asset_url, asset_type
+           FROM issue_supplementary_assets
+          WHERE issue_id = $1
+          ORDER BY created_at ASC, asset_url ASC`,
+        [draftId],
+      );
+      assets = assetResult.rows;
+    }
   } catch (error) {
     console.error("[argus] canvas draft lookup failed", error);
     return <CanvasAccessDenied reason="unavailable" />;
@@ -102,5 +126,5 @@ export default async function CanvasPage({
     return <CanvasAccessDenied reason="already_submitted" />;
   }
 
-  return <CanvasEditorShell issue={toDraftData(issue)} token={token} />;
+  return <CanvasEditorShell issue={toDraftData(issue, assets)} token={token} />;
 }

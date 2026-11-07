@@ -54,8 +54,10 @@ The overlay is fully wired:
 - **Harvest now** renders the page metadata and the latest console/network
   errors inside the popup.
 - **Use this screenshot** uploads the raw PNG to the CDN, creates a draft and
-  opens the canvas editor; **Take another one** discards it with no network
-  calls.
+  opens the canvas editor. When captures have been staged with **Add to
+  issue**, it uploads every staged screenshot plus the current preview into a
+  single draft and records the captured page URLs for each image. **Take
+  another one** discards only the current preview with no network calls.
 - Diagnostics harvester injected into the active tab: URL, title, viewport,
   screen, DPR, OS, browser/engine and an ISO-8601 timestamp, plus a rolling
   50-entry buffer of console errors, warnings, unhandled rejections and

@@ -21,7 +21,12 @@ const captureTextButton = document.querySelector("#capture-text");
 const capturePreview = document.querySelector("#capture-preview");
 const captureActions = document.querySelector("#capture-actions");
 const useCaptureButton = document.querySelector("#use-capture");
+const addCaptureButton = document.querySelector("#add-capture");
 const discardCaptureButton = document.querySelector("#discard-capture");
+const stagedCapturesEl = document.querySelector("#staged-captures");
+const stagedCount = document.querySelector("#staged-count");
+const clearStagedButton = document.querySelector("#clear-staged");
+const createStagedButton = document.querySelector("#create-staged");
 const dispatchSteps = document.querySelector("#dispatch-steps");
 const dispatchStatus = document.querySelector("#dispatch-status");
 const textReport = document.querySelector("#text-report");
@@ -35,6 +40,7 @@ const textStatus = document.querySelector("#text-status");
 const textSuccess = document.querySelector("#text-success");
 
 let lastCapture = null;
+let stagedCaptures = [];
 let dispatching = false;
 
 async function refresh() {  const settings = await loadSettings();
@@ -288,9 +294,144 @@ function renderCapture(capture) {
   dispatchSteps.hidden = true;
   dispatchSteps.replaceChildren();
   setDispatchStatus("", "");
+  updateCaptureActionLabels();
 }
 
-const DISPATCH_STEPS = ["Upload raw capture", "Create draft", "Open editor"];
+function stampCapture(capture, tab, snapshot) {
+  capture.tabId = tab.id;
+  capture.pageUrl = tab.url ?? capture.pageUrl ?? "";
+  capture.snapshot = snapshot;
+  capture.capturedAt = new Date().toISOString();
+  capture.pageTitle = snapshot?.environment_info?.title ?? tab.title ?? "";
+  return capture;
+}
+
+function captureTitle(capture) {
+  return (
+    capture?.snapshot?.environment_info?.title ||
+    capture?.pageTitle ||
+    capture?.pageUrl ||
+    "Untitled capture"
+  );
+}
+
+function updateCaptureActionLabels() {
+  const total = stagedCaptures.length + (lastCapture ? 1 : 0);
+  if (useCaptureButton) {
+    useCaptureButton.textContent =
+      total > 1 ? `Use ${total} screenshots` : "Use this screenshot";
+  }
+  if (addCaptureButton) {
+    addCaptureButton.disabled = !lastCapture || dispatching;
+  }
+  if (clearStagedButton) {
+    clearStagedButton.disabled = stagedCaptures.length === 0 || dispatching;
+  }
+  if (createStagedButton) {
+    createStagedButton.disabled = total === 0 || dispatching;
+    createStagedButton.textContent = `Create issue with ${total} screenshot${
+      total === 1 ? "" : "s"
+    }`;
+  }
+}
+
+function renderStagedCaptures() {
+  stagedCapturesEl.replaceChildren();
+  stagedCount.textContent = String(stagedCaptures.length);
+
+  if (stagedCaptures.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent =
+      "No screenshots added yet. Capture a screenshot, then choose Add to issue to collect it here.";
+    stagedCapturesEl.append(empty);
+    updateCaptureActionLabels();
+    return;
+  }
+
+  stagedCaptures.forEach((capture, index) => {
+    const item = document.createElement("figure");
+    item.className = "gallery-item";
+
+    const image = document.createElement("img");
+    image.src = capture.dataUrl;
+    image.alt = `Staged capture ${index + 1}`;
+    image.className = "gallery-thumb";
+
+    const caption = document.createElement("figcaption");
+    caption.className = "gallery-caption";
+
+    const label = document.createElement("span");
+    label.className = "gallery-label";
+    label.textContent = `#${index + 1} · ${captureTitle(capture)}`;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "icon-button";
+    remove.title = "Remove this screenshot";
+    remove.setAttribute("aria-label", `Remove screenshot ${index + 1}`);
+    remove.textContent = "×";
+    remove.addEventListener("click", () => {
+      stagedCaptures = stagedCaptures.filter(
+        (_, captureIndex) => captureIndex !== index,
+      );
+      persistStagedCaptures();
+      renderStagedCaptures();
+    });
+
+    caption.append(label, remove);
+    item.append(image, caption);
+    stagedCapturesEl.append(item);
+  });
+
+  updateCaptureActionLabels();
+}
+
+async function persistStagedCaptures() {
+  try {
+    await chrome.storage.session.set({
+      "argus.stagedCaptures": stagedCaptures,
+    });
+  } catch {
+    // Session storage has a quota; keep the in-memory copy if it is exceeded.
+  }
+}
+
+function clearStagedCaptures() {
+  stagedCaptures = [];
+  void persistStagedCaptures();
+  renderStagedCaptures();
+}
+
+async function addCurrentCapture() {
+  if (!lastCapture) {
+    return;
+  }
+
+  stagedCaptures = [...stagedCaptures, lastCapture];
+  lastCapture = null;
+  await chrome.storage.session.remove("argus.lastCapture").catch(() => {});
+  await persistStagedCaptures();
+
+  capturePreview.replaceChildren();
+  const message = document.createElement("p");
+  message.className = "status ok";
+  message.textContent = `Screenshot added. ${stagedCaptures.length} capture${
+    stagedCaptures.length === 1 ? "" : "s"
+  } ready for this issue.`;
+  capturePreview.append(message);
+
+  captureActions.hidden = true;
+  dispatchSteps.hidden = true;
+  dispatchSteps.replaceChildren();
+  setDispatchStatus(
+    "Take another screenshot, or use the captures above to create the issue.",
+    "",
+  );
+  renderStagedCaptures();
+}
+
+const DISPATCH_STEPS = ["Upload raw captures", "Create draft", "Open editor"];
 
 function renderDispatchSteps(activeIndex, errorIndex = -1) {
   dispatchSteps.replaceChildren();
@@ -332,6 +473,7 @@ async function discardCapture() {
   dispatchSteps.hidden = true;
   dispatchSteps.replaceChildren();
   setDispatchStatus("", "");
+  updateCaptureActionLabels();
 }
 
 async function dispatchCapture() {
@@ -339,7 +481,12 @@ async function dispatchCapture() {
     return;
   }
 
-  if (!lastCapture) {
+  const captures = [
+    ...stagedCaptures,
+    ...(lastCapture ? [lastCapture] : []),
+  ];
+
+  if (captures.length === 0) {
     setDispatchStatus("Capture a screenshot first.", "warn");
     return;
   }
@@ -355,21 +502,16 @@ async function dispatchCapture() {
 
   dispatching = true;
   useCaptureButton.disabled = true;
+  addCaptureButton.disabled = true;
   discardCaptureButton.disabled = true;
+  updateCaptureActionLabels();
   setDispatchStatus("", "");
 
   renderDispatchSteps(0);
 
   try {
-    const tab = await chrome.tabs.get(lastCapture.tabId).catch(() => null);
-    if (!tab) {
-      throw new Error(
-        "The captured tab is no longer available. Take another screenshot.",
-      );
-    }
-
     const result = await runDispatch({
-      capture: lastCapture,
+      captures,
       settings,
       createTab: (url) => chrome.tabs.create({ url }),
       readSnapshot: (tabId) => readHarvestSnapshot(tabId),
@@ -381,6 +523,21 @@ async function dispatchCapture() {
       renderDispatchSteps(result.step, result.step);
       return;
     }
+
+    stagedCaptures = [];
+    lastCapture = null;
+    await chrome.storage.session.remove("argus.lastCapture").catch(() => {});
+    await persistStagedCaptures();
+    renderStagedCaptures();
+
+    capturePreview.replaceChildren();
+    const message = document.createElement("p");
+    message.className = "status ok";
+    message.textContent = `Issue created with ${captures.length} screenshot${
+      captures.length === 1 ? "" : "s"
+    }.`;
+    capturePreview.append(message);
+    captureActions.hidden = true;
 
     renderDispatchSteps(3);
     setDispatchStatus(
@@ -396,6 +553,8 @@ async function dispatchCapture() {
     dispatching = false;
     useCaptureButton.disabled = false;
     discardCaptureButton.disabled = false;
+    addCaptureButton.disabled = !lastCapture;
+    updateCaptureActionLabels();
   }
 }
 
@@ -469,7 +628,11 @@ async function captureArea() {
       });
       capture.tabId = tab.id;
       capture.pageUrl = tab.url ?? "";
-      capture.snapshot = await readHarvestSnapshot(tab.id).catch(() => null);
+      stampCapture(
+        capture,
+        tab,
+        await readHarvestSnapshot(tab.id).catch(() => null),
+      );
       lastCapture = capture;
       await chrome.storage.session.set({ "argus.lastCapture": capture });
       renderCapture(capture);
@@ -497,7 +660,11 @@ async function captureArea() {
     const capture = await cropDataUrl(dataUrl, rect);
     capture.tabId = tab.id;
     capture.pageUrl = tab.url ?? "";
-    capture.snapshot = await readHarvestSnapshot(tab.id).catch(() => null);
+    stampCapture(
+      capture,
+      tab,
+      await readHarvestSnapshot(tab.id).catch(() => null),
+    );
     lastCapture = capture;
     await chrome.storage.session.set({ "argus.lastCapture": capture });
     renderCapture(capture);
@@ -589,7 +756,11 @@ async function captureFullPage() {
     const capture = await stitchFrames(frames, metrics);
     capture.tabId = tab.id;
     capture.pageUrl = tab.url ?? "";
-    capture.snapshot = await readHarvestSnapshot(tab.id).catch(() => null);
+    stampCapture(
+      capture,
+      tab,
+      await readHarvestSnapshot(tab.id).catch(() => null),
+    );
     lastCapture = capture;
     renderCapture(capture);
     await chrome.storage.session
@@ -645,20 +816,37 @@ useCaptureButton.addEventListener("click", () => {
   void dispatchCapture();
 });
 
+addCaptureButton.addEventListener("click", () => {
+  void addCurrentCapture();
+});
+
+clearStagedButton.addEventListener("click", () => {
+  clearStagedCaptures();
+});
+
+createStagedButton.addEventListener("click", () => {
+  void dispatchCapture();
+});
+
 discardCaptureButton.addEventListener("click", () => {
   void discardCapture();
 });
 
 chrome.storage.session
-  .get("argus.lastCapture")
+  .get(["argus.lastCapture", "argus.stagedCaptures"])
   .then((stored) => {
+    if (Array.isArray(stored["argus.stagedCaptures"])) {
+      stagedCaptures = stored["argus.stagedCaptures"];
+    }
     if (stored["argus.lastCapture"]) {
       lastCapture = stored["argus.lastCapture"];
       renderCapture(stored["argus.lastCapture"]);
     }
+    renderStagedCaptures();
   })
   .catch(() => {
     // Session storage may be unavailable in older Chromium builds.
+    renderStagedCaptures();
   });
 
 refresh().catch(() => {
@@ -667,3 +855,4 @@ refresh().catch(() => {
 });
 
 updatePriorityLabel();
+renderStagedCaptures();

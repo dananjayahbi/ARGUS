@@ -97,6 +97,25 @@
       </section>
 
       <section class="card">
+        <h2>
+          Captures for this issue
+          <span id="staged-count" class="badge">0</span>
+        </h2>
+        <div id="staged-captures" class="gallery">
+          <p class="muted">
+            No screenshots added yet. Capture a screenshot, then choose
+            <strong>Add to issue</strong> to collect it here.
+          </p>
+        </div>
+        <div class="actions">
+          <button id="create-staged" type="button" class="primary" disabled>
+            Create issue with 0 screenshots
+          </button>
+          <button id="clear-staged" type="button" disabled>Clear all</button>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Last capture</h2>
         <div id="capture-preview" class="preview">
           <p class="muted">No capture yet.</p>
@@ -105,6 +124,7 @@
           <button id="use-capture" type="button" class="primary">
             Use this screenshot
           </button>
+          <button id="add-capture" type="button">Add to issue</button>
           <button id="discard-capture" type="button">Take another one</button>
         </div>
         <ol id="dispatch-steps" class="steps" hidden></ol>

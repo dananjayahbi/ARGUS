@@ -36,6 +36,11 @@ export const consoleLogSchema = z
   })
   .passthrough();
 
+export const supplementaryAssetSchema = z.object({
+  url: z.string().url("supplementary asset url must be an absolute URL"),
+  asset_type: z.string().min(1, "asset_type is required"),
+});
+
 export const ingestDraftSchema = z
   .object({
     project_id: z.string().uuid("project_id must be a UUID"),
@@ -50,6 +55,10 @@ export const ingestDraftSchema = z
       .array(consoleLogSchema)
       .max(50, "console_logs accepts at most 50 entries")
       .nullable()
+      .optional(),
+    supplementary_assets: z
+      .array(supplementaryAssetSchema)
+      .max(200, "at most 200 supplementary assets")
       .optional(),
   })
   .strict()
@@ -124,11 +133,6 @@ export const directIssueStatusSchema = z.enum([
   "working",
   "completed",
 ]);
-
-export const supplementaryAssetSchema = z.object({
-  url: z.string().url("supplementary asset url must be an absolute URL"),
-  asset_type: z.string().min(1, "asset_type is required"),
-});
 
 export const createIssueSchema = z
   .object({
