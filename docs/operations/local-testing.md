@@ -259,6 +259,13 @@ draft** (top right) removes the draft and its uploads, and the tab closes
 automatically after a successful submit or delete. Without the extension the
 canvas falls back to a **Close tab** button on the confirmation screen.
 
+Full-page regression: open a page whose main content scrolls inside an app
+shell (for example YouTube Studio), click **Full page**, and inspect the
+capture. The gallery should contain one tall stitched image of the content
+area, not only the final viewport. The extension detects the inner scroller,
+crops each frame to its visible box, and restores the original page scroll
+position.
+
 ## 6. Automated gates (great for regression)
 
 ```powershell

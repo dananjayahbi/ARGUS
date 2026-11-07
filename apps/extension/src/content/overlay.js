@@ -18,6 +18,7 @@
   document.getElementById("argus-overlay")?.remove();
 
   const MAX_FULL_PAGE_FRAMES = 40;
+  const fullPage = window.__ARGUS_FULLPAGE__;
 
   // Chrome tears down extension APIs in already-injected content scripts when
   // the extension is reloaded, updated or disabled. `chrome.runtime` then
@@ -450,21 +451,28 @@
   }
 
   async function stitchFrames(frames, metrics) {
-    const first = await loadImage(frames[0].dataUrl);
-    const scaleX = first.naturalWidth / metrics.viewportWidth;
-    const scaleY = first.naturalHeight / metrics.viewportHeight;
-    const width = Math.round(metrics.viewportWidth * scaleX);
-    const height = Math.round(metrics.totalHeight * scaleY);
+    if (!fullPage) {
+      throw new Error(
+        "Full-page capture runtime is missing. Reload the extension.",
+      );
+    }
 
-    if (width > 32000 || height > 32000) {
+    const first = await loadImage(frames[0].dataUrl);
+    const layout = fullPage.computeStitchLayout(
+      metrics,
+      first.naturalWidth,
+      first.naturalHeight,
+    );
+
+    if (layout.width > 32000 || layout.height > 32000) {
       throw new Error(
         "The stitched image would exceed the browser canvas limit.",
       );
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = layout.width;
+    canvas.height = layout.height;
     const context = canvas.getContext("2d");
     if (!context) {
       throw new Error("Unable to stitch the capture.");
@@ -474,17 +482,21 @@
       const image = await loadImage(frame.dataUrl);
       context.drawImage(
         image,
+        layout.sourceX,
+        layout.sourceY,
+        layout.sourceWidth,
+        layout.sourceHeight,
         0,
-        Math.round(frame.scrollY * scaleY),
-        width,
-        image.naturalHeight,
+        Math.round(frame.scrollY * layout.imageScaleY),
+        layout.width,
+        layout.sourceHeight,
       );
     }
 
     return {
       dataUrl: canvas.toDataURL("image/png"),
-      width,
-      height,
+      width: layout.width,
+      height: layout.height,
       mimeType: "image/png",
       capturedAt: new Date().toISOString(),
       viewport: {
@@ -635,93 +647,37 @@
 
   // -------------------------------------------------------- full-page helpers
 
-  let hiddenElements = [];
-
-  function restoreHiddenElements() {
-    for (const element of hiddenElements) {
-      const previous = element.getAttribute("data-argus-prev-visibility");
-      const priority = element.getAttribute("data-argus-prev-priority") ?? "";
-      if (previous) {
-        element.style.setProperty("visibility", previous, priority);
-      } else {
-        element.style.removeProperty("visibility");
-      }
-      element.removeAttribute("data-argus-prev-visibility");
-      element.removeAttribute("data-argus-prev-priority");
+  function requireFullPageRuntime() {
+    if (!fullPage) {
+      throw new Error(
+        "Full-page capture runtime is missing. Reload the extension.",
+      );
     }
-    hiddenElements = [];
+    return fullPage;
   }
 
   function prepareFullPageCapture() {
-    restoreHiddenElements();
-    document.getElementById("argus-fullpage-style")?.remove();
-
-    return {
-      totalHeight: Math.max(
-        document.documentElement.scrollHeight,
-        document.body?.scrollHeight ?? 0,
-        window.innerHeight,
-      ),
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-      dpr: window.devicePixelRatio,
-    };
+    return requireFullPageRuntime().prepareFullPageCapture();
   }
 
-  function hideFixedElements() {
-    restoreHiddenElements();
-
-    for (const element of document.querySelectorAll("body *")) {
-      const position = getComputedStyle(element).position;
-      if (position === "fixed" || position === "sticky") {
-        element.setAttribute(
-          "data-argus-prev-visibility",
-          element.style.getPropertyValue("visibility"),
-        );
-        element.setAttribute(
-          "data-argus-prev-priority",
-          element.style.getPropertyPriority("visibility"),
-        );
-        element.style.setProperty("visibility", "hidden", "important");
-        hiddenElements.push(element);
-      }
-    }
-
-    return hiddenElements.length;
+  function hideFixedElements(metrics) {
+    return requireFullPageRuntime().hideFixedElements(metrics);
   }
 
-  function restoreFullPageCapture(scroll) {
-    restoreHiddenElements();
-    document.getElementById("argus-fullpage-style")?.remove();
-
-    if (scroll && Number.isFinite(scroll.x) && Number.isFinite(scroll.y)) {
-      window.scrollTo(scroll.x, scroll.y);
-    }
+  function restoreFullPageCapture(metrics) {
+    requireFullPageRuntime().restoreFullPageCapture(metrics);
   }
 
-  function scrollToPosition(y) {
-    window.scrollTo(0, y);
-    return new Promise((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          resolve(window.scrollY);
-        });
-      });
-    });
+  function scrollToPosition(metrics, y) {
+    return requireFullPageRuntime().scrollToPosition(metrics, y);
   }
 
   function fullPageFrameCount(totalHeight, viewportHeight, maxFrames) {
-    const frameCount = Math.max(
-      1,
-      Math.ceil(totalHeight / Math.max(1, viewportHeight)),
+    return requireFullPageRuntime().fullPageFrameCount(
+      totalHeight,
+      viewportHeight,
+      maxFrames ?? MAX_FULL_PAGE_FRAMES,
     );
-    return {
-      frameCount,
-      exceedsLimit: frameCount > maxFrames,
-      maxFrames,
-    };
   }
 
   // ----------------------------------------------------------------- helpers
@@ -1176,9 +1132,12 @@
       const frames = [];
 
       for (let index = 0; index < uniquePositions.length; index += 1) {
-        const scrollY = await scrollToPosition(uniquePositions[index]);
+        const scrollY = await scrollToPosition(
+          metrics,
+          uniquePositions[index],
+        );
         if (index === 1) {
-          hideFixedElements();
+          hideFixedElements(metrics);
         }
         await delay(550);
 
@@ -1204,7 +1163,7 @@
       setStatus(describeCaptureError(error), "error");
     } finally {
       if (metrics) {
-        restoreFullPageCapture({ x: metrics.scrollX, y: metrics.scrollY });
+        restoreFullPageCapture(metrics);
       }
       showUiAfterCapture();
       popup.hidden = false;
@@ -1537,7 +1496,7 @@
       // The extension context may already be invalidated.
     }
     document.querySelector('[data-argus-snip="true"]')?.remove();
-    restoreHiddenElements();
+    fullPage?.restoreHiddenElements?.();
     root.remove();
     delete window.__ARGUS_OVERLAY__;
   }

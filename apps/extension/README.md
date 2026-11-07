@@ -70,8 +70,12 @@ The overlay is fully wired:
 - Options page persists the app/CDN URLs, both tokens and the project ID.
 - **Area snip** draws a crosshair marquee over the page, captures the tab and
   crops to the selection at the captured image's pixel scale.
-- **Full page** scrolls and stitches the whole document, hiding fixed/sticky
-  elements after the first frame and restoring the page afterwards.
+- **Full page** detects whether the document or an inner app scroller owns the
+  scroll. It scrolls that container, suppresses fixed/sticky descendants,
+  crops each frame to the scroller's visible box and stitches the content.
+  Switching between document and inner scrollers fixes app shells where the
+  old code scrolled the window and captured the same viewport repeatedly. The
+  document/app chrome outside an inner scroller is intentionally excluded.
 - **Text report** shows an inline title/description/priority form and creates
   a `text_only` issue that is finalized straight to Pending. **Cancel** (or
   Escape) returns to the Area snip default without submitting.
@@ -114,7 +118,10 @@ Captures and network calls are coordinated by `background.js`
 (`shared/background-handlers.js`): the overlay handles the DOM work (marquee,
 crop, stitch) and asks the service worker for `captureVisibleTab`, the harvest
 snapshot, opening the editor tab, and the CDN/ingest requests. Messages are
-covered by `npm test` (`test-handlers.mjs`).
+covered by `npm test` (`test-handlers.mjs`). Full-page scroll-target detection,
+scrolling and stitch geometry live in `content/fullpage.js`, loaded before
+`content/overlay.js`; its regression suite is
+`test-fullpage-runtime.mjs`.
 
 Overlay styles live in `content/overlay.css` and are declared in
 `manifest.json` (and inserted with `chrome.scripting.insertCSS` for the

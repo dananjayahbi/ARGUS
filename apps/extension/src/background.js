@@ -67,7 +67,7 @@ async function openOverlay(tabId) {
       .catch(() => {});
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["content/overlay.js"],
+      files: ["content/fullpage.js", "content/overlay.js"],
     });
   }
 }
