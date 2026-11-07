@@ -356,12 +356,13 @@ databases and temp storage.
 
 ### Upload returns 413 / 415 / 422
 
-- `413`: image > 50 MB or audio > 200 MB (`MAX_IMAGE_BYTES` /
+- `413`: image or document > 50 MB, or audio > 200 MB (`MAX_IMAGE_BYTES` /
   `MAX_AUDIO_BYTES`).
 - `415`: MIME type not allowed. `raw`/`annotated` accept images; `audio`
-  accepts WebM/MP4/WAV/OGG; `reconsider` accepts images and audio.
+  accepts WebM/MP4/WAV/OGG; `files` accepts PDF or plain text; `reconsider`
+  accepts images and audio.
 - `422`: unknown category or invalid payload. Allowed categories: `raw`,
-  `annotated`, `reconsider`, `audio`.
+  `annotated`, `reconsider`, `audio`, `files`.
 
 ### Canvas shows “Draft link expired” or “Invalid draft link”
 

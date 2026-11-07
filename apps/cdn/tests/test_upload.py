@@ -38,6 +38,8 @@ def test_valid_png_upload_returns_201_and_stores_the_file(
 
 
 def test_each_allowed_media_type_is_accepted(make_settings, auth_headers, png_bytes, media_headers):
+    pdf_bytes = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+    log_bytes = b"2026-11-07T10:00:00Z INFO server started\n"
     cases = [
         ("raw", "shot.png", png_bytes, "image/png"),
         ("annotated", "shot.webp", media_headers["webp"], "image/webp"),
@@ -47,6 +49,8 @@ def test_each_allowed_media_type_is_accepted(make_settings, auth_headers, png_by
         ("audio", "memo.ogg", media_headers["ogg"], "audio/ogg"),
         ("reconsider", "evidence.png", png_bytes, "image/png"),
         ("reconsider", "call.webm", media_headers["webm"], "audio/webm"),
+        ("files", "report.pdf", pdf_bytes, "application/pdf"),
+        ("files", "server.log", log_bytes, "text/plain"),
     ]
 
     settings = make_settings()
@@ -184,6 +188,36 @@ def test_reconsider_accepts_audio(client, auth_headers, media_headers):
     )
 
     assert response.status_code == 201
+
+
+def test_files_category_rejects_media(client, auth_headers, png_bytes, media_headers):
+    image = client.post(
+        "/api/upload",
+        data={"category": "files"},
+        files={"file": ("shot.png", png_bytes, "image/png")},
+        headers=auth_headers,
+    )
+    audio = client.post(
+        "/api/upload",
+        data={"category": "files"},
+        files={"file": ("memo.webm", media_headers["webm"], "audio/webm")},
+        headers=auth_headers,
+    )
+
+    assert image.status_code == 415
+    assert audio.status_code == 415
+
+
+def test_files_category_rejects_mismatched_pdf(client, settings, auth_headers):
+    response = client.post(
+        "/api/upload",
+        data={"category": "files"},
+        files={"file": ("report.pdf", b"just text pretending to be a pdf", "application/pdf")},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 415
+    assert list((settings.storage_root / "files").rglob("*")) == []
 
 
 def test_upload_preflight_allows_the_extension_origin(client):

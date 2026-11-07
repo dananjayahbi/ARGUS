@@ -284,3 +284,53 @@ export const updateProjectSchema = z
   );
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
+export const commentAttachmentSchema = z.object({
+  url: z.string().url("attachment url must be an absolute URL"),
+  asset_type: z.string().min(1, "asset_type is required").max(100),
+  file_name: z.string().max(255).nullable().optional(),
+  size_bytes: z
+    .number()
+    .int()
+    .nonnegative("size_bytes must be zero or greater")
+    .nullable()
+    .optional(),
+});
+
+export type CommentAttachmentInput = z.infer<typeof commentAttachmentSchema>;
+
+export const createCommentSchema = z
+  .object({
+    body: z
+      .string()
+      .max(20000, "body must be at most 20000 characters")
+      .optional()
+      .default(""),
+    attachments: z
+      .array(commentAttachmentSchema)
+      .max(20, "at most 20 attachments per comment")
+      .optional()
+      .default([]),
+  })
+  .strict()
+  .refine(
+    (value) => value.body.trim().length > 0 || value.attachments.length > 0,
+    "A comment body or at least one attachment is required",
+  );
+
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;
+
+export const markNotificationsReadSchema = z
+  .object({
+    ids: z.array(z.string().uuid()).min(1).max(100).optional(),
+    all: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (value) => value.all === true || (value.ids?.length ?? 0) > 0,
+    "Provide notification ids or set all=true",
+  );
+
+export type MarkNotificationsReadInput = z.infer<
+  typeof markNotificationsReadSchema
+>;

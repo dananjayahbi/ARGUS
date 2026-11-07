@@ -12,6 +12,7 @@ import { buildIssueGallery } from "@/lib/issue-gallery";
 import { priorityTier } from "@/lib/priority";
 
 import { IssueFormModal } from "./IssueFormModal";
+import { IssueCommentsPanel } from "./IssueCommentsPanel";
 
 interface DetailNote {
   id: string;
@@ -55,11 +56,13 @@ interface DetailPayload {
 
 export function IssueDetailModal({
   issueId,
+  focusCommentId,
   onClose,
   onUpdated,
   onDeleted,
 }: {
   issueId: string;
+  focusCommentId?: string | null;
   onClose: () => void;
   onUpdated?: (issue: BoardIssue) => void;
   onDeleted?: (id: string) => void;
@@ -157,7 +160,7 @@ export function IssueDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-cream">
       <header className="shrink-0 border-b border-teal-hover bg-teal px-6 py-4 text-cream">
-        <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-4">
+        <div className="flex w-full items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
               Issue details
@@ -206,8 +209,9 @@ export function IssueDetailModal({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
+        <div className="flex w-full flex-col lg:h-full lg:flex-row">
+          <div className="min-w-0 space-y-6 p-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {confirmDelete && issue ? (
             <div className="rounded-md border border-bad/40 bg-bad/10 p-3">
               <p className="text-sm text-bad">
@@ -513,6 +517,15 @@ export function IssueDetailModal({
               ) : null}
             </>
           ) : null}
+          </div>
+
+          <div className="flex flex-col border-t border-line lg:min-h-0 lg:w-[420px] lg:shrink-0 lg:border-t-0 xl:w-[460px]">
+            <IssueCommentsPanel
+              key={issueId}
+              issueId={issueId}
+              focusCommentId={focusCommentId}
+            />
+          </div>
         </div>
       </div>
 

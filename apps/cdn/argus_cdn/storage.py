@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .mime import ALLOWED_EXTENSIONS_BY_MIME, EXTENSION_BY_MIME
 
-CATEGORIES: tuple[str, ...] = ("raw", "annotated", "audio", "reconsider")
+CATEGORIES: tuple[str, ...] = ("raw", "annotated", "audio", "reconsider", "files")
 
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9._-]+")
 _SAFE_EXTENSION = re.compile(r"^\.[a-z0-9]{1,10}$")

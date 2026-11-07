@@ -1,8 +1,8 @@
 # ARGUS CDN daemon
 
 Headless asset storage service for the ARGUS QA ecosystem. It accepts
-authenticated multipart uploads for four categories (`raw`, `annotated`,
-`audio`, `reconsider`), validates MIME type and size, writes to UTC
+authenticated multipart uploads for five categories (`raw`, `annotated`,
+`audio`, `reconsider`, `files`), validates MIME type and size, writes to UTC
 year/month-sharded paths, and serves stored files read-only.
 
 This is the local-first implementation of Phase 1 in
@@ -60,7 +60,8 @@ uvicorn argus_cdn.main:create_app --factory --reload --host 127.0.0.1 --port 808
 
 The service binds to `HOST`/`PORT` from `.env` (default `127.0.0.1:8080`).
 On boot it idempotently creates `STORAGE_ROOT/raw`, `STORAGE_ROOT/annotated`,
-`STORAGE_ROOT/audio`, `STORAGE_ROOT/reconsider` and `STORAGE_ROOT/.tmp`.
+`STORAGE_ROOT/audio`, `STORAGE_ROOT/reconsider`, `STORAGE_ROOT/files` and
+`STORAGE_ROOT/.tmp`.
 
 Missing `CDN_AUTH_TOKEN`, `CDN_BASE_URL` or `STORAGE_ROOT` aborts startup with
 a readable error naming the missing variables.
@@ -76,7 +77,7 @@ Public. Returns:
   "status": "ok",
   "service": "argus-cdn",
   "version": "0.1.0",
-  "categories": { "raw": true, "annotated": true, "audio": true, "reconsider": true }
+  "categories": { "raw": true, "annotated": true, "audio": true, "reconsider": true, "files": true }
 }
 ```
 
@@ -87,14 +88,14 @@ Requires `X-CDN-Auth-Token`. Multipart form fields:
 | Field | Value |
 | --- | --- |
 | `file` | binary file stream |
-| `category` | `raw`, `annotated`, `audio` or `reconsider` |
+| `category` | `raw`, `annotated`, `audio`, `reconsider` or `files` |
 
 Allowed MIME types: `image/png`, `image/jpeg`, `image/webp`, `audio/webm`,
-`audio/mp4`, `audio/wav`, `audio/ogg`.
+`audio/mp4`, `audio/wav`, `audio/ogg`, `application/pdf`, `text/plain`.
 
-Limits: 50 MB for image types, 200 MB for audio types. The body is streamed to
-a temporary file on the storage volume and moved into place only after the
-sniffed type matches the declared type.
+Limits: 50 MB for image and document types, 200 MB for audio types. The body is
+streamed to a temporary file on the storage volume and moved into place only
+after the sniffed type matches the declared type.
 
 Success (`201`):
 
@@ -120,10 +121,12 @@ invalid categories and traversal attempts return `404`.
 
 - `raw` and `annotated` accept image types only.
 - `audio` accepts audio types only.
-- `reconsider` accepts both image and audio types.
-- The architecture's reconsider modal mentions log files, but §3.2 limits
-  storage exclusively to the seven media types above. That allow-list is
-  enforced here; log attachments need a separate decision before launch.
+- `files` accepts PDF or plain-text documents only.
+- `reconsider` accepts image and audio types.
+- Text-like documents (`.txt`, `.log`, `.md`, `.csv`, `.json`, `.xml`,
+  `.yaml`, `.yml`) are stored as `text/plain` and served with
+  `X-Content-Type-Options: nosniff`, so uploaded HTML or JavaScript cannot run
+  in the browser.
 
 ## Tests
 

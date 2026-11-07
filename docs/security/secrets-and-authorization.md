@@ -67,7 +67,7 @@ Both services reject missing or weak values before serving traffic:
 | Chrome extension → app | `WORKSPACE_TOKEN` (`X-Workspace-Token`) | `POST /api/ingest/draft` |
 | Chrome extension → CDN | `CDN_AUTH_TOKEN` (`X-CDN-Auth-Token`) | `POST /api/upload` |
 | Browser canvas draft → app | 30-minute HMAC draft token (`?token=` or `Bearer`) | `/canvas/[draftId]`, `/api/uploads`, `/api/issues/[id]/finalize` |
-| Dashboard user → app | `argus_session` httpOnly cookie (signed JWT + DB session) | `/dashboard`, `/projects/*`, `/api/issues/*`, `/api/uploads` |
+| Dashboard user → app | `argus_session` httpOnly cookie (signed JWT + DB session) | `/dashboard`, `/projects/*`, `/api/issues/*`, `/api/issues/[id]/comments`, `/api/notifications*`, `/api/uploads` |
 | Public | none | `/healthz`, `/login`, static assets |
 
 ## 5. Authorization matrix
@@ -85,6 +85,10 @@ Every denied row is expected to make **no database write**.
 | `PATCH /api/issues/[id]/status` | ❌ | ❌ | ✅ | ✅ | ❌ |
 | `GET /api/issues/[id]` | ❌ | ❌ | ✅ | ✅ | ❌ |
 | `GET /api/issues/[id]/notes` | ❌ | ❌ | ✅ | ✅ | ❌ |
+| `GET /api/issues/[id]/comments` | ❌ | ❌ | ✅ | ✅ | ❌ |
+| `POST /api/issues/[id]/comments` | ❌ | ❌ | ✅ (author role `qa`) | ✅ (author role `developer`) | ❌ |
+| `GET /api/notifications` | ❌ | ❌ | ✅ (own feed only) | ✅ (own feed only) | ❌ |
+| `POST /api/notifications/read` | ❌ | ❌ | ✅ (own items only) | ✅ (own items only) | ❌ |
 | `GET /healthz` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `GET /canvas/[draftId]?token=` | n/a | ✅ | ✅ (token still required) | ✅ (token still required) | ❌ |
 
@@ -104,6 +108,11 @@ Notes:
   denied actors for ingest, finalize, reconsider and uploads.
 - `apps/web/src/app/api/issues/[id]/status/route.test.ts` and
   `notes/route.test.ts` assert session protection.
+- `apps/web/src/app/api/issues/[id]/comments/route.test.ts` and
+  `apps/web/src/app/api/notifications/**/route.test.ts` assert session
+  protection, input validation and notification fan-out. The integration suite
+  additionally proves that a QA comment creates a developer notification and
+  that read state is persisted.
 - `apps/cdn/tests/test_auth.py` asserts missing, wrong and valid CDN tokens.
 - `apps/web/src/lib/env.test.ts` and `apps/cdn/tests/test_config.py` assert
   weak and placeholder secrets are rejected without echoing the value.

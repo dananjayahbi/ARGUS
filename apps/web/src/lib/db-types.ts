@@ -79,3 +79,34 @@ export interface IssueSupplementaryAssetRow extends QueryResultRow {
   asset_type: string;
   created_at: Date;
 }
+
+export interface IssueCommentRow extends QueryResultRow {
+  id: string;
+  issue_id: string;
+  author_user_id: string | null;
+  author_role: AuthorRole;
+  body: string;
+  created_at: Date;
+}
+
+export interface IssueCommentAttachmentRow extends QueryResultRow {
+  id: string;
+  comment_id: string;
+  asset_url: string;
+  asset_type: string;
+  file_name: string | null;
+  size_bytes: string | number | null;
+  created_at: Date;
+}
+
+export interface NotificationRow extends QueryResultRow {
+  id: string;
+  user_id: string;
+  issue_id: string;
+  comment_id: string | null;
+  actor_user_id: string | null;
+  actor_role: AuthorRole;
+  kind: "comment";
+  read_at: Date | null;
+  created_at: Date;
+}

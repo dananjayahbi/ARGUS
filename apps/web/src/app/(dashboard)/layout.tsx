@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { QueryResultRow } from "pg";
 
 import { ConfigurationsButton } from "@/components/dashboard/ConfigurationsButton";
+import { NotificationsButton } from "@/components/dashboard/NotificationsButton";
 import { ProjectCreateButton } from "@/components/dashboard/ProjectCreateButton";
 import { ProjectSwitcher } from "@/components/dashboard/ProjectSwitcher";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
@@ -47,6 +48,7 @@ export default async function DashboardLayout({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <NotificationsButton />
           <ConfigurationsButton
             projects={projects.rows.map(({ key, name }) => ({ key, name }))}
           />

@@ -11,6 +11,9 @@ const REQUIRED_TABLES = [
   "issues",
   "issue_reconsider_notes",
   "issue_supplementary_assets",
+  "issue_comments",
+  "issue_comment_attachments",
+  "notifications",
 ] as const;
 
 const REQUIRED_INDEXES = [
@@ -18,9 +21,18 @@ const REQUIRED_INDEXES = [
   "idx_issues_status",
   "idx_issues_project_status",
   "idx_reconsider_issue",
+  "idx_issue_comments_issue",
+  "idx_comment_attachments_comment",
+  "idx_notifications_user_created",
+  "idx_notifications_unread",
 ] as const;
 
-const REQUIRED_FOREIGN_KEYS = [
+const REQUIRED_FOREIGN_KEYS: Array<{
+  table: string;
+  column: string;
+  referencedTable: string;
+  deleteRule?: string;
+}> = [
   { table: "issues", column: "project_id", referencedTable: "projects" },
   {
     table: "issue_reconsider_notes",
@@ -32,7 +44,44 @@ const REQUIRED_FOREIGN_KEYS = [
     column: "issue_id",
     referencedTable: "issues",
   },
-] as const;
+  {
+    table: "issue_comments",
+    column: "issue_id",
+    referencedTable: "issues",
+  },
+  {
+    table: "issue_comments",
+    column: "author_user_id",
+    referencedTable: "users",
+    deleteRule: "SET NULL",
+  },
+  {
+    table: "issue_comment_attachments",
+    column: "comment_id",
+    referencedTable: "issue_comments",
+  },
+  {
+    table: "notifications",
+    column: "user_id",
+    referencedTable: "users",
+  },
+  {
+    table: "notifications",
+    column: "issue_id",
+    referencedTable: "issues",
+  },
+  {
+    table: "notifications",
+    column: "comment_id",
+    referencedTable: "issue_comments",
+  },
+  {
+    table: "notifications",
+    column: "actor_user_id",
+    referencedTable: "users",
+    deleteRule: "SET NULL",
+  },
+];
 
 interface TableRow {
   table_name: string;
@@ -113,9 +162,9 @@ async function main() {
       failures.push(
         `missing foreign key: ${required.table}.${required.column} -> ${required.referencedTable}`,
       );
-    } else if (match.delete_rule !== "CASCADE") {
+    } else if (match.delete_rule !== (required.deleteRule ?? "CASCADE")) {
       failures.push(
-        `foreign key ${required.table}.${required.column} must use ON DELETE CASCADE (found ${match.delete_rule})`,
+        `foreign key ${required.table}.${required.column} must use ON DELETE ${required.deleteRule ?? "CASCADE"} (found ${match.delete_rule})`,
       );
     }
   }

@@ -12,12 +12,16 @@ type RecorderStatus = "idle" | "recording" | "paused" | "ready" | "error";
 
 interface VoiceRecorderProps {
   onRecorded: (blob: Blob | null, mimeType: string | null) => void;
+  hint?: string;
 }
 
 const buttonClass =
   "rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:bg-paper-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
+export function VoiceRecorder({
+  onRecorded,
+  hint = "No duration limit. Audio uploads when you submit the report.",
+}: VoiceRecorderProps) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [duration, setDuration] = useState(0);
   const [level, setLevel] = useState(0);
@@ -369,7 +373,7 @@ export function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
       ) : null}
 
       <p className="text-xs leading-5 text-muted">
-        No duration limit. Audio uploads when you submit the report.
+        {hint}
       </p>
     </section>
   );

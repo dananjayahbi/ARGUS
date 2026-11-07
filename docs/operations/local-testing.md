@@ -208,6 +208,17 @@ Invoke-RestMethod "$web/api/issues/$issueId/reconsider" -Method Post -WebSession
 Empty note or calling the status API to `reconsider` directly returns **422**
 by design.
 
+8. **Conversation and notifications**:
+   - Open any issue **Details** modal. The left side shows the issue content;
+     the right side is the QA ↔ developer conversation.
+   - Post a comment as QA with a screenshot, a voice note, or a PDF/text/log
+     file. The comment appears at the bottom of the thread.
+   - Log in as the developer in a second browser profile. The header
+     **Notifications** badge shows the unread count.
+   - Open **Notifications**, click the QA comment, and the issue detail opens
+     above the notification list, scrolled to and highlighting that comment.
+     Closing the issue returns to the notification feed.
+
 ## 5. Extension test (optional, needs Chrome)
 
 ```powershell

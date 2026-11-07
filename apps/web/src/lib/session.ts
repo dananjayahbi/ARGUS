@@ -81,17 +81,27 @@ export async function requireSession(): Promise<DashboardSession> {
 
 /**
  * Session check for API routes that already have the Request object.
+ * Reads the dashboard cookie and resolves it to a user/role.
+ */
+export async function getRequestSession(
+  request: Request,
+): Promise<DashboardSession | null> {
+  const cookie = request.headers.get("cookie") ?? "";
+  const match = cookie.match(/(?:^|;\s*)argus_session=([^;]+)/);
+  if (!match) {
+    return null;
+  }
+
+  return loadSession(decodeURIComponent(match[1]));
+}
+
+/**
+ * Session check for API routes that already have the Request object.
  * Used by the finalize route to allow an authenticated dashboard user
  * in place of a draft token.
  */
 export async function hasDashboardSession(
   request: Request,
 ): Promise<boolean> {
-  const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.match(/(?:^|;\s*)argus_session=([^;]+)/);
-  if (!match) {
-    return false;
-  }
-
-  return Boolean(await loadSession(decodeURIComponent(match[1])));
+  return Boolean(await getRequestSession(request));
 }

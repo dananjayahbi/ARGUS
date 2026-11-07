@@ -12,6 +12,7 @@ from .auth import require_cdn_token
 from .mime import (
     ALLOWED_MIME_TYPES,
     AUDIO_MIME_TYPES,
+    DOCUMENT_MIME_TYPES,
     IMAGE_MIME_TYPES,
     normalise_content_type,
     sniff_length,
@@ -67,6 +68,11 @@ async def upload_asset(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="The audio category accepts audio uploads only.",
         )
+    if category == "files" and declared not in DOCUMENT_MIME_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="The files category accepts PDF or plain-text documents only.",
+        )
     if category in {"raw", "annotated"} and declared not in IMAGE_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -74,8 +80,9 @@ async def upload_asset(
         )
 
     is_audio = declared in AUDIO_MIME_TYPES
+    is_document = declared in DOCUMENT_MIME_TYPES
     limit = settings.max_audio_bytes if is_audio else settings.max_image_bytes
-    limit_label = "audio" if is_audio else "image"
+    limit_label = "audio" if is_audio else "file" if is_document else "image"
 
     first_chunk = await file.read(_CHUNK_SIZE)
     if not first_chunk:

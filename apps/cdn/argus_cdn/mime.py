@@ -1,15 +1,17 @@
 """MIME allow-list and content sniffing for uploaded assets.
 
-The CDN deliberately accepts only the seven media types named in the
-architecture plan. Detection uses magic bytes so a client cannot smuggle an
-executable or HTML document behind an image content type.
+The CDN accepts the media types named in the architecture plan (images and
+audio) plus a deliberately small document allow-list used by the dashboard
+conversation attachments. Detection uses magic bytes so a client cannot smuggle
+an executable or HTML document behind an image content type.
 """
 
 from __future__ import annotations
 
 IMAGE_MIME_TYPES = frozenset({"image/png", "image/jpeg", "image/webp"})
 AUDIO_MIME_TYPES = frozenset({"audio/webm", "audio/mp4", "audio/wav", "audio/ogg"})
-ALLOWED_MIME_TYPES = IMAGE_MIME_TYPES | AUDIO_MIME_TYPES
+DOCUMENT_MIME_TYPES = frozenset({"application/pdf", "text/plain"})
+ALLOWED_MIME_TYPES = IMAGE_MIME_TYPES | AUDIO_MIME_TYPES | DOCUMENT_MIME_TYPES
 
 EXTENSION_BY_MIME: dict[str, str] = {
     "image/png": ".png",
@@ -19,6 +21,8 @@ EXTENSION_BY_MIME: dict[str, str] = {
     "audio/mp4": ".m4a",
     "audio/wav": ".wav",
     "audio/ogg": ".ogg",
+    "application/pdf": ".pdf",
+    "text/plain": ".txt",
 }
 
 ALLOWED_EXTENSIONS_BY_MIME: dict[str, frozenset[str]] = {
@@ -29,7 +33,21 @@ ALLOWED_EXTENSIONS_BY_MIME: dict[str, frozenset[str]] = {
     "audio/mp4": frozenset({".m4a", ".mp4"}),
     "audio/wav": frozenset({".wav"}),
     "audio/ogg": frozenset({".ogg", ".oga"}),
+    "application/pdf": frozenset({".pdf"}),
+    "text/plain": frozenset(
+        {
+            ".txt",
+            ".log",
+            ".md",
+            ".csv",
+            ".json",
+            ".xml",
+            ".yaml",
+            ".yml",
+        }
+    ),
 }
+
 
 MIME_BY_EXTENSION: dict[str, str] = {
     extension: mime_type
@@ -77,7 +95,34 @@ def sniff_mime(head: bytes) -> str | None:
     if len(head) >= 12 and head[4:8] == b"ftyp" and head[8:12] in _AUDIO_MP4_BRANDS:
         return "audio/mp4"
 
+    if head.startswith(b"%PDF-"):
+        return "application/pdf"
+
+    if _looks_like_text(head):
+        return "text/plain"
+
     return None
+
+
+def _looks_like_text(head: bytes) -> bool:
+    """Best-effort check that the leading bytes are a UTF-8 text document.
+
+    The allow-list maps every text-like extension to ``text/plain`` and serves
+    it with ``X-Content-Type-Options: nosniff``, so HTML or JavaScript cannot be
+    executed by the browser even when a user uploads one.
+    """
+    if not head or b"\x00" in head:
+        return False
+
+    try:
+        text = head.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+
+    return all(
+        character in "\t\n\r" or ord(character) >= 32 for character in text
+    )
+
 
 
 def sniff_length() -> int:

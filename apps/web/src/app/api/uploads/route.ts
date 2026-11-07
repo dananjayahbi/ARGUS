@@ -13,6 +13,7 @@ const ALLOWED_CATEGORIES = new Set([
   "annotated",
   "reconsider",
   "audio",
+  "files",
 ]);
 
 function extractToken(request: Request): string | null {
@@ -76,7 +77,7 @@ async function handlePOST(request: Request) {
   ) {
     return jsonError(
       "BAD_REQUEST",
-      "category must be raw, annotated, reconsider or audio.",
+      "category must be raw, annotated, reconsider, audio or files.",
     );
   }
 

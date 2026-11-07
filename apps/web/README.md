@@ -41,7 +41,7 @@ is covered by the repository `.gitignore`.
 | `npm run db:migrate` | Apply every pending migration (non-interactive, CI-safe) |
 | `npm run db:migrate:down` | Roll back the most recent migration |
 | `npm run db:seed` | Idempotently insert the default `ARGUS` / `ARG` project |
-| `npm run db:verify` | Assert the four tables, three foreign keys and four indexes exist |
+| `npm run db:verify` | Assert the expected tables, foreign keys and indexes exist |
 
 The migration runner loads `.env.local` when present, otherwise it uses the
 process environment. `DATABASE_URL` is the only database variable it reads.
@@ -144,6 +144,22 @@ version is displayed first with an `Annotated` badge; opening the lightbox adds
 an **Annotated / Original** toggle so the untouched capture stays one click
 away. Supplementary captures remain separate cards.
 
+### Issue conversation and notifications
+
+The issue detail view is split in two: the existing issue content on the left
+and a chronological QA ↔ developer conversation on the right. Comments support
+Markdown, image attachments, audio (voice notes with no duration limit) and
+document attachments (PDF and text/log files). Attachments are uploaded through
+`POST /api/uploads` to the CDN; images use the `reconsider` category, audio uses
+`audio`, and documents use `files`.
+
+`POST /api/issues/[id]/comments` records the comment and fans out one
+notification row for every other dashboard user. The header **Notifications**
+button shows the unread count, opens a full-viewport activity feed, and marks an
+item read when it is opened. The issue detail modal is layered above the feed,
+so closing the issue returns to the notification list. Opening a notification
+scrolls the conversation to the comment that triggered it.
+
 ## Data layer
 
 `src/lib/db.ts` exports:
@@ -168,9 +184,14 @@ throw at import time, so `next build` works without a live database.
 | `issues` | Bug reports, canvas state, telemetry and CDN asset URLs |
 | `issue_reconsider_notes` | Developer/QA conversation for the Reconsider loop |
 | `issue_supplementary_assets` | Clipboard-pasted secondary assets |
+| `issue_comments` | Chronological issue conversation comments |
+| `issue_comment_attachments` | Images, voice notes and documents attached to comments |
+| `notifications` | Per-user comment notifications with read state |
 
-Foreign keys cascade from `projects` to `issues` and from `issues` to both
-child tables.
+Foreign keys cascade from `projects` to `issues`, from `issues` to the child
+tables, and from `users` to sessions and notifications. Comment authors and
+notification actors are nullable references to `users` with `ON DELETE SET
+NULL`, so deleting an account preserves the conversation and its audit trail.
 
 ### Issue numbering decision
 
