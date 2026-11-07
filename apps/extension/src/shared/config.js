@@ -1,8 +1,8 @@
 export const STORAGE_KEY = "argus.settings.v1";
 
 export const DEFAULT_SETTINGS = Object.freeze({
-  appBaseUrl: "http://localhost:3000",
-  cdnBaseUrl: "http://127.0.0.1:8080",
+  appBaseUrl: "http://localhost:13130",
+  cdnBaseUrl: "http://127.0.0.1:18130",
   workspaceToken: "",
   cdnToken: "",
   projectId: "",

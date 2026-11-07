@@ -1,9 +1,5 @@
 import { isConfigured, loadSettings } from "./shared/config.js";
-import {
-  cropDataUrl,
-  fullPageFrameCount,
-  stitchFrames,
-} from "./shared/capture.js";
+import { cropDataUrl, fullPageFrameCount, loadImage, stitchFrames } from "./shared/capture.js";
 import { dispatchCapture as runDispatch } from "./shared/dispatch.js";
 import { submitTextReport } from "./shared/text-report.js";
 import { createSnipOverlay } from "./content/snip-overlay.js";
@@ -266,9 +262,12 @@ async function harvestDiagnostics() {
 
     await chrome.storage.session.set({ "argus.lastSnapshot": snapshot });
     renderDiagnostics(snapshot);
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "";
     diagnosticsPreview.textContent =
-      "Unable to harvest this page. Check the host permissions and try again.";
+      "Unable to harvest this page" +
+      (detail ? `: ${detail}` : "") +
+      ". Only http(s) pages (including http://localhost) can be harvested.";
   }
 }
 
@@ -400,6 +399,32 @@ async function dispatchCapture() {
   }
 }
 
+function isCapturableUrl(url) {
+  if (!url) return false;
+  try {
+    const scheme = new URL(url).protocol.replace(":", "");
+    return scheme === "http" || scheme === "https";
+  } catch {
+    return false;
+  }
+}
+
+function describeCaptureError(error, tabUrl) {
+  const detail = error instanceof Error ? error.message : String(error ?? "");
+  if (tabUrl && !isCapturableUrl(tabUrl)) {
+    return (
+      `This page (${tabUrl}) cannot be captured. ` +
+      "Open any http(s) web page (including http://localhost and other local http pages) and try again." +
+      (detail ? ` Details: ${detail}` : "")
+    );
+  }
+  return (
+    `Unable to capture this page${detail ? `: ${detail}` : ""}. ` +
+    "If this is an http(s) page, reload it and try again. " +
+    "Chrome cannot capture chrome://, extension, or other privileged pages."
+  );
+}
+
 async function captureArea() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || tab.windowId === undefined) {
@@ -407,20 +432,65 @@ async function captureArea() {
     return;
   }
 
+  if (!isCapturableUrl(tab.url)) {
+    capturePreview.textContent =
+      `This page (${tab.url ?? "unknown"}) cannot be captured. ` +
+      "Open any http(s) web page — including http://localhost pages — and try again.";
+    return;
+  }
+
   capturePreview.textContent = "Drag a rectangle on the page…";
 
+  let rect = null;
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: createSnipOverlay,
     });
-    const rect = results?.[0]?.result;
-
-    if (!rect) {
-      capturePreview.textContent = "Capture cancelled.";
+    rect = results?.[0]?.result;
+  } catch (overlayError) {
+    try {
+      const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+        format: "png",
+      });
+      const image = await loadImage(dataUrl).catch(() => null);
+      if (!image) {
+        capturePreview.textContent = describeCaptureError(overlayError, tab.url);
+        return;
+      }
+      const capture = await cropDataUrl(dataUrl, {
+        x: 0,
+        y: 0,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        viewportWidth: image.naturalWidth,
+        viewportHeight: image.naturalHeight,
+        dpr: 1,
+      });
+      capture.tabId = tab.id;
+      capture.pageUrl = tab.url ?? "";
+      capture.snapshot = await readHarvestSnapshot(tab.id).catch(() => null);
+      lastCapture = capture;
+      await chrome.storage.session.set({ "argus.lastCapture": capture });
+      renderCapture(capture);
+      const note = document.createElement("p");
+      note.className = "muted";
+      note.textContent =
+        "Full-visible fallback — the snip overlay could not load on this page.";
+      capturePreview.append(note);
+      return;
+    } catch {
+      capturePreview.textContent = describeCaptureError(overlayError, tab.url);
       return;
     }
+  }
 
+  if (!rect) {
+    capturePreview.textContent = "Capture cancelled.";
+    return;
+  }
+
+  try {
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
       format: "png",
     });
@@ -431,9 +501,8 @@ async function captureArea() {
     lastCapture = capture;
     await chrome.storage.session.set({ "argus.lastCapture": capture });
     renderCapture(capture);
-  } catch {
-    capturePreview.textContent =
-      "Unable to capture this page. Open a regular http(s) page and try again.";
+  } catch (error) {
+    capturePreview.textContent = describeCaptureError(error, tab.url);
   }
 }
 
@@ -447,6 +516,13 @@ async function captureFullPage() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || tab.windowId === undefined) {
     capturePreview.textContent = "No active tab to capture.";
+    return;
+  }
+
+  if (!isCapturableUrl(tab.url)) {
+    capturePreview.textContent =
+      `This page (${tab.url ?? "unknown"}) cannot be captured. ` +
+      "Open any http(s) web page — including http://localhost pages — and try again.";
     return;
   }
 

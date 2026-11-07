@@ -1,23 +1,48 @@
-const PANEL_BEHAVIOR = { openPanelOnActionClick: true };
+// ARGUS overlay controller (runs in the service worker).
+// A floating icon is injected on every http(s) page; clicking it opens the
+// compact capture popup over the page. No side panel is opened.
 
-function enablePanelBehavior() {
-  chrome.sidePanel.setPanelBehavior(PANEL_BEHAVIOR).catch(() => {
-    // Older Chromium builds may not support the behavior flag; the action
-    // click handler below still opens the panel.
-  });
+function isCapturableUrl(url) {
+  if (!url) return false;
+  try {
+    const scheme = new URL(url).protocol.replace(":", "");
+    return scheme === "http" || scheme === "https";
+  } catch {
+    return false;
+  }
 }
 
-chrome.runtime.onInstalled.addListener(enablePanelBehavior);
-chrome.runtime.onStartup.addListener(enablePanelBehavior);
-
 chrome.action.onClicked.addListener(async (tab) => {
-  if (tab.windowId === undefined) {
+  if (!tab?.id) {
+    return;
+  }
+
+  if (!isCapturableUrl(tab.url)) {
+    try {
+      const settings = (await chrome.storage.local.get("argus.settings.v1"))?.[
+        "argus.settings.v1"
+      ];
+      await chrome.tabs.create({
+        url: settings?.appBaseUrl ?? "http://localhost:13130",
+      });
+    } catch {
+      // No settings yet; nothing to open.
+    }
     return;
   }
 
   try {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content/overlay.js"],
+    });
   } catch {
-    // setPanelBehavior already opens the panel on supported versions.
+    // Injected overlay handles its own errors; nothing to do here.
+  }
+});
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "ARGUS_CAPTURE_REQUEST") {
+    chrome.runtime.sendMessage(message);
   }
 });

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { query } from "@/lib/db";
 import { hasDashboardSession } from "@/lib/session";
 
-import { GET } from "./route";
+import { GET, PATCH, DELETE } from "./route";
 
 vi.mock("@/lib/db", () => ({ query: vi.fn() }));
 vi.mock("@/lib/session", () => ({ hasDashboardSession: vi.fn() }));
@@ -111,6 +111,129 @@ describe("GET /api/issues/[id]", () => {
     queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 } as never);
 
     const response = await GET(request(), context);
+
+    expect(response.status).toBe(404);
+  });
+});
+
+function mutateRequest(
+  method: "PATCH" | "DELETE",
+  body?: unknown,
+) {
+  return new Request(`http://localhost:3000/api/issues/${ISSUE_ID}`, {
+    method,
+    ...(body
+      ? {
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      : {}),
+  });
+}
+
+describe("PATCH /api/issues/[id]", () => {
+  it("requires a dashboard session", async () => {
+    sessionMock.mockResolvedValue(false);
+
+    const response = await PATCH(
+      mutateRequest("PATCH", { title: "New title" }),
+      context,
+    );
+
+    expect(response.status).toBe(401);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("merges the edit with the current row", async () => {
+    sessionMock.mockResolvedValue(true);
+    queryMock
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            title: "Old title",
+            description: "details",
+            priority: 50,
+            status: "pending",
+            report_type: "text_only",
+            raw_image_url: null,
+            annotated_image_url: null,
+            audio_note_url: null,
+          },
+        ],
+        rowCount: 1,
+      } as never)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: ISSUE_ID,
+            issue_number: 12,
+            title: "New title",
+            description: "details",
+            priority: 50,
+            status: "pending",
+            report_type: "text_only",
+            updated_at: new Date("2026-01-02T00:00:00Z"),
+          },
+        ],
+        rowCount: 1,
+      } as never);
+
+    const response = await PATCH(
+      mutateRequest("PATCH", { title: "New title" }),
+      context,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.issue.title).toBe("New title");
+    expect(body.issue.description).toBe("details");
+  });
+
+  it("rejects a reconsider status on edit", async () => {
+    sessionMock.mockResolvedValue(true);
+
+    const response = await PATCH(
+      mutateRequest("PATCH", { status: "reconsider" }),
+      context,
+    );
+
+    expect(response.status).toBe(422);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for an unknown issue", async () => {
+    sessionMock.mockResolvedValue(true);
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 } as never);
+
+    const response = await PATCH(
+      mutateRequest("PATCH", { title: "New title" }),
+      context,
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe("DELETE /api/issues/[id]", () => {
+  it("deletes an existing issue", async () => {
+    sessionMock.mockResolvedValue(true);
+    queryMock.mockResolvedValueOnce({
+      rows: [{ id: ISSUE_ID }],
+      rowCount: 1,
+    } as never);
+
+    const response = await DELETE(mutateRequest("DELETE"), context);
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ ok: true, id: ISSUE_ID });
+  });
+
+  it("returns 404 for an unknown issue", async () => {
+    sessionMock.mockResolvedValue(true);
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 } as never);
+
+    const response = await DELETE(mutateRequest("DELETE"), context);
 
     expect(response.status).toBe(404);
   });

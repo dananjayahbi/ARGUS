@@ -4,21 +4,16 @@
   "version": "0.1.0",
   "description": "Capture screenshots, environment metadata and console errors into ARGUS.",
   "minimum_chrome_version": "116",
-  "permissions": ["sidePanel", "activeTab", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "host_permissions": [
-    "http://localhost/*",
-    "http://127.0.0.1/*",
-    "https://*/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
-    "default_title": "Open ARGUS side panel"
-  },
-  "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_title": "ARGUS QA Capture — click to open the overlay popup"
   },
   "options_ui": {
     "page": "options.html",

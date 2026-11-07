@@ -5,8 +5,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { DiagnosticsDrawer } from "@/components/canvas/DiagnosticsDrawer";
+import type { BoardIssue } from "@/lib/board-types";
 import { priorityTier } from "@/lib/priority";
 
+import { IssueFormModal } from "./IssueFormModal";
 import { ReadOnlyCanvas } from "./ReadOnlyCanvas";
 
 interface DetailNote {
@@ -52,13 +54,21 @@ interface DetailPayload {
 export function IssueDetailModal({
   issueId,
   onClose,
+  onUpdated,
+  onDeleted,
 }: {
   issueId: string;
   onClose: () => void;
+  onUpdated?: (issue: BoardIssue) => void;
+  onDeleted?: (id: string) => void;
 }) {
   const [data, setData] = useState<DetailPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [imageMode, setImageMode] = useState<"raw" | "annotated">("annotated");
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,15 +147,137 @@ export function IssueDetailModal({
               </p>
             ) : null}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close issue details"
-            className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
-          >
-            Close
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {issue ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-200 transition hover:bg-slate-800"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmDelete(true);
+                    setDeleteError(null);
+                  }}
+                  className="rounded-md border border-rose-500/40 px-2 py-1 text-xs text-rose-200 transition hover:bg-rose-500/10"
+                >
+                  Delete
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close issue details"
+              className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
+            >
+              Close
+            </button>
+          </div>
         </div>
+
+        {confirmDelete && issue ? (
+          <div className="mt-4 rounded-md border border-rose-500/40 bg-rose-500/10 p-3">
+            <p className="text-sm text-rose-100">
+              Delete issue {data?.project.key ?? ""}-{issue.issue_number}?
+              This permanently deletes the issue and its notes. This cannot
+              be undone.
+            </p>
+            {deleteError ? (
+              <p className="mt-1 text-xs text-rose-200">{deleteError}</p>
+            ) : null}
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  setDeleteError(null);
+                  try {
+                    const response = await fetch(`/api/issues/${issueId}`, {
+                      method: "DELETE",
+                    });
+                    const body = (await response
+                      .json()
+                      .catch(() => null)) as {
+                      error?: { message?: string };
+                    } | null;
+                    if (!response.ok) {
+                      setDeleteError(
+                        body?.error?.message ?? "Unable to delete the issue.",
+                      );
+                      return;
+                    }
+                    onDeleted?.(issueId);
+                    onClose();
+                  } catch {
+                    setDeleteError("Unable to reach the server.");
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-semibold text-slate-950 disabled:opacity-60"
+              >
+                {deleting ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {editing && issue && data ? (
+          <IssueFormModal
+            projectKey={data.project.key}
+            editing={{
+              id: issue.id,
+              issue_number: issue.issue_number,
+              title: issue.title,
+              priority: issue.priority,
+              status: issue.status as BoardIssue["status"],
+              report_type: issue.report_type,
+              updated_at: issue.updated_at,
+              description: issue.description,
+              raw_image_url: issue.raw_image_url,
+              supplementary_assets: (data?.supplementary_assets ?? []).map(
+                (asset) => ({ url: asset.asset_url, asset_type: asset.asset_type }),
+              ),
+            }}
+            onCancel={() => setEditing(false)}
+            onSaved={(saved) => {
+              setEditing(false);
+              setData((current) =>
+                current
+                  ? {
+                      ...current,
+                      issue: {
+                        ...current.issue,
+                        title: saved.title,
+                        description:
+                          saved.description !== undefined
+                            ? saved.description
+                            : current.issue.description,
+                        priority: saved.priority,
+                        status: saved.status,
+                        updated_at: saved.updated_at,
+                      },
+                    }
+                  : current,
+              );
+              onUpdated?.(saved);
+            }}
+          />
+        ) : null}
 
         {error ? (
           <p className="mt-6 rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">

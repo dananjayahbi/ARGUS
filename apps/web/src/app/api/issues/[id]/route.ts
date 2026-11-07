@@ -6,6 +6,7 @@ import { jsonError } from "@/lib/api-errors";
 import { query } from "@/lib/db";
 import { withApiObservability } from "@/lib/observability";
 import { hasDashboardSession } from "@/lib/session";
+import { updateIssueSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -136,4 +137,143 @@ async function handleGET(
   });
 }
 
+interface MutableIssueRow extends QueryResultRow {
+  id: string;
+  issue_number: number;
+  title: string;
+  description: string | null;
+  priority: number;
+  status: string;
+  report_type: string;
+  updated_at: Date;
+}
+
+async function handlePATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  if (!(await hasDashboardSession(request))) {
+    return jsonError("UNAUTHORIZED", "Dashboard session required.");
+  }
+
+  const { id } = await context.params;
+  if (!idSchema.safeParse(id).success) {
+    return jsonError("NOT_FOUND", "Issue not found.");
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("BAD_REQUEST", "Request body must be valid JSON.");
+  }
+
+  const parsed = updateIssueSchema.safeParse(body);
+  if (!parsed.success) {
+    return jsonError(
+      "UNPROCESSABLE_ENTITY",
+      "Invalid issue update.",
+      parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      })),
+    );
+  }
+
+  const payload = parsed.data;
+
+  const currentResult = await query<{
+    title: string;
+    description: string | null;
+    priority: number;
+    status: string;
+    report_type: string;
+    raw_image_url: string | null;
+    annotated_image_url: string | null;
+    audio_note_url: string | null;
+  } & QueryResultRow>(
+    `SELECT title, description, priority, status, report_type, raw_image_url, annotated_image_url, audio_note_url FROM issues WHERE id = $1`,
+    [id],
+  );
+  const current = currentResult.rows[0];
+  if (!current) {
+    return jsonError("NOT_FOUND", "Issue not found.");
+  }
+
+  const result = await query<MutableIssueRow>(
+    `UPDATE issues
+        SET title = $2,
+            description = $3,
+            priority = $4,
+            status = $5,
+            report_type = $6,
+            raw_image_url = $7,
+            annotated_image_url = $8,
+            audio_note_url = $9,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, issue_number, title, description, priority, status, report_type, updated_at`,
+    [
+      id,
+      payload.title ?? current.title,
+      payload.description !== undefined ? payload.description : current.description,
+      payload.priority ?? current.priority,
+      payload.status ?? current.status,
+      payload.report_type ?? current.report_type,
+      payload.raw_image_url !== undefined
+        ? payload.raw_image_url
+        : current.raw_image_url,
+      payload.annotated_image_url !== undefined
+        ? payload.annotated_image_url
+        : current.annotated_image_url,
+      payload.audio_note_url !== undefined
+        ? payload.audio_note_url
+        : current.audio_note_url,
+    ],
+  );
+
+  if (payload.supplementary_assets !== undefined) {
+    await query(
+      "DELETE FROM issue_supplementary_assets WHERE issue_id = $1",
+      [id],
+    );
+    for (const asset of payload.supplementary_assets ?? []) {
+      await query(
+        `INSERT INTO issue_supplementary_assets (issue_id, asset_url, asset_type)
+         VALUES ($1, $2, $3)`,
+        [id, asset.url, asset.asset_type],
+      );
+    }
+  }
+
+  return NextResponse.json({ issue: result.rows[0] });
+}
+
+async function handleDELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  if (!(await hasDashboardSession(request))) {
+    return jsonError("UNAUTHORIZED", "Dashboard session required.");
+  }
+
+  const { id } = await context.params;
+  if (!idSchema.safeParse(id).success) {
+    return jsonError("NOT_FOUND", "Issue not found.");
+  }
+
+  const result = await query(
+    "DELETE FROM issues WHERE id = $1 RETURNING id",
+    [id],
+  );
+
+  if (!result.rows[0]) {
+    return jsonError("NOT_FOUND", "Issue not found.");
+  }
+
+  return NextResponse.json({ ok: true, id });
+}
+
 export const GET = withApiObservability("GET /api/issues/[id]", handleGET);
+export const PATCH = withApiObservability("PATCH /api/issues/[id]", handlePATCH);
+export const DELETE = withApiObservability("DELETE /api/issues/[id]", handleDELETE);

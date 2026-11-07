@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { QueryResultRow } from "pg";
 
+import { ConfigurationsButton } from "@/components/dashboard/ConfigurationsButton";
+import { ProjectCreateButton } from "@/components/dashboard/ProjectCreateButton";
 import { ProjectSwitcher } from "@/components/dashboard/ProjectSwitcher";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { query } from "@/lib/db";
@@ -35,6 +37,10 @@ export default async function DashboardLayout({
         </div>
 
         <div className="flex items-center gap-3">
+          <ConfigurationsButton
+            projects={projects.rows.map(({ key, name }) => ({ key, name }))}
+          />
+          <ProjectCreateButton />
           <ProjectSwitcher
             projects={projects.rows.map(({ key, name }) => ({ key, name }))}
           />

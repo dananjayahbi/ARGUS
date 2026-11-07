@@ -20,8 +20,8 @@ The loadable extension is written to `dist/`. `dist/` is gitignored.
 3. Choose **Load unpacked** and select `apps/extension/dist`.
 4. Click the ARGUS toolbar icon to open the side panel.
 5. Open **Settings** and enter:
-   - **App base URL**: `http://localhost:3000`
-   - **CDN base URL**: `http://127.0.0.1:8080`
+   - **App base URL**: `http://localhost:13130`
+   - **CDN base URL**: `http://127.0.0.1:18130`
    - **Workspace ingestion token**: `WORKSPACE_TOKEN` from `apps/web/.env.local`
    - **CDN upload token**: `CDN_AUTH_TOKEN` from `apps/cdn/.env`
    - **Project ID**: the UUID of the ARGUS project row
@@ -64,5 +64,5 @@ access; the side panel reads it through `chrome.scripting.executeScript`.
 
 - No token value is committed; `check.mjs` rejects non-empty defaults.
 - The extension only stores tokens in `chrome.storage.local`.
-- Host permissions cover local development (`localhost` / `127.0.0.1`) and HTTPS
-  origins for the deployed app and CDN.
+- Host permissions cover any web page (`http://*/*` and `https://*/*`),
+  including local http pages such as `http://localhost:13130`.
