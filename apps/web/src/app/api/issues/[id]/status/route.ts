@@ -22,6 +22,8 @@ interface IssueRow extends QueryResultRow {
   status: string;
   report_type: string;
   updated_at: Date;
+  created_at: Date;
+  board_order: number;
 }
 
 async function handlePATCH(
@@ -57,11 +59,30 @@ async function handlePATCH(
   }
 
   const result = await query<IssueRow>(
-    `UPDATE issues
-        SET status = $2,
+    `UPDATE issues AS target
+        SET status = $2::text,
+            board_order = CASE
+              WHEN target.status = $2::text THEN target.board_order
+              ELSE COALESCE(
+                (SELECT MAX(board_order) + 1024
+                   FROM issues
+                  WHERE project_id = target.project_id
+                    AND status = $2::text
+                    AND id <> target.id),
+                1024
+              )
+            END,
             updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, issue_number, title, priority, status, report_type, updated_at`,
+      WHERE target.id = $1
+      RETURNING target.id,
+                target.issue_number,
+                target.title,
+                target.priority,
+                target.status,
+                target.report_type,
+                target.updated_at,
+                target.created_at,
+                target.board_order`,
     [id, parsed.data.status],
   );
   const issue = result.rows[0];

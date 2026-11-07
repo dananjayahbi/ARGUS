@@ -59,6 +59,7 @@ export interface IssueRow extends QueryResultRow {
   console_logs: ConsoleLogEntry[] | null;
   ephemeral_token: string | null;
   token_expires_at: Date | null;
+  board_order: number;
   created_at: Date;
   updated_at: Date;
 }

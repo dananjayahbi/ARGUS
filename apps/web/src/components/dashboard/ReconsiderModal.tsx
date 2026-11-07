@@ -130,7 +130,7 @@ export function ReconsiderModal({
         }),
       });
       const body = (await response.json().catch(() => null)) as
-        | { error?: { message?: string } }
+        | { error?: { message?: string }; board_order?: number | null }
         | null;
 
       if (!response.ok) {
@@ -143,6 +143,10 @@ export function ReconsiderModal({
       onSaved({
         ...issue,
         status: mode === "developer" ? "reconsider" : "working",
+        board_order:
+          typeof body?.board_order === "number"
+            ? body.board_order
+            : issue.board_order,
       });
     } catch {
       setError("Unable to reach the server.");

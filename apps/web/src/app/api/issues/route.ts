@@ -64,10 +64,19 @@ async function handlePOST(request: Request) {
   const result = await query<CreatedIssueRow>(
     `INSERT INTO issues (
        project_id, title, description, priority, status, report_type,
-       raw_image_url, annotated_image_url, audio_note_url
+       raw_image_url, annotated_image_url, audio_note_url, board_order
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING id, issue_number, title, description, priority, status, report_type, updated_at`,
+     VALUES (
+       $1, $2, $3, $4, $5::text, $6, $7, $8, $9,
+       COALESCE(
+         (SELECT MAX(board_order) + 1024
+            FROM issues
+           WHERE project_id = $1
+             AND status = $5::text),
+         1024
+       )
+     )
+     RETURNING id, issue_number, title, description, priority, status, report_type, updated_at, created_at, board_order`,
     [
       project.id,
       payload.title,

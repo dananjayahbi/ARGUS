@@ -20,6 +20,7 @@ const REQUIRED_INDEXES = [
   "idx_project_issue_number",
   "idx_issues_status",
   "idx_issues_project_status",
+  "idx_issues_project_status_order",
   "idx_reconsider_issue",
   "idx_issue_comments_issue",
   "idx_comment_attachments_comment",

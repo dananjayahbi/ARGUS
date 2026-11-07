@@ -245,6 +245,23 @@ export const updateIssueSchema = z
 
 export type UpdateIssueInput = z.infer<typeof updateIssueSchema>;
 
+export const issuePositionSchema = z
+  .object({
+    status: directIssueStatusSchema,
+    previous_issue_id: z.string().uuid().nullable().optional(),
+    next_issue_id: z.string().uuid().nullable().optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      !value.previous_issue_id ||
+      !value.next_issue_id ||
+      value.previous_issue_id !== value.next_issue_id,
+    "previous_issue_id and next_issue_id must be different",
+  );
+
+export type IssuePositionInput = z.infer<typeof issuePositionSchema>;
+
 export const createProjectSchema = z
   .object({
     name: z

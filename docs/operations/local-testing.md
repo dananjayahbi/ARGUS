@@ -148,11 +148,19 @@ Open the browser:
 2. You land on **Dashboard**. Pick project **ARGUS (ARG)** in the project
    switcher if it isn't auto-selected.
 3. **Kanban** shows 5 columns: Draft, Pending, Working, Reconsider, Completed.
-   - Drag a card between columns (except to Reconsider — see step 5).
-   - Click **Details** on any card to open the issue modal. Every attached
-     screenshot (raw, supplementary and annotated) appears in a gallery; click
-     any tile to open the full-screen preview and use **← / →** (or the
-     previous/next buttons) to browse the gallery without closing it.
+   - Drag a card within a column or between columns to persist manual order
+     (except to Reconsider — see step 5). Columns default to **Manual order**.
+   - Open **Filters** to filter by priority range and date added (today,
+     yesterday, this week, this month or a custom range). Filters start
+     collapsed.
+   - Use the sort selector in each column header to switch between manual
+     order, added date, modified date and priority. Dragging is available only
+     in manual order.
+   - Double-click a card (or click **Details**) to open the issue modal. Every
+     attached screenshot (raw, supplementary and annotated) appears in a
+     gallery; click any tile to open the full-screen preview and use
+     **← / →** (or the previous/next buttons) to browse the gallery without
+     closing it.
 4. **Create a capture the programmatic way** (no extension needed):
 
 ```powershell

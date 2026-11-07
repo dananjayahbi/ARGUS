@@ -144,6 +144,21 @@ version is displayed first with an `Annotated` badge; opening the lightbox adds
 an **Annotated / Original** toggle so the untouched capture stays one click
 away. Supplementary captures remain separate cards.
 
+### Kanban board ordering and filters
+
+- **Manual order** is persisted in `issues.board_order`. Dragging a card within
+  a column or into another column stores a fractional position between its
+  neighbours; when the midpoint gap is exhausted the server renumbers the
+  column in 1024-point steps. Columns default to manual order.
+- **Filters** are collapsed by default. The panel filters by priority range and
+  by the date the issue was added (today, yesterday, this week, this month or a
+  custom range). Active filters are counted in the header and can be cleared in
+  one click.
+- **Per-column sorting** can be switched between manual order, added date,
+  modified date and priority (ascending or descending). Dragging is disabled
+  while a column uses a non-manual sort.
+- **Double-clicking a card** opens the issue detail modal.
+
 ### Issue conversation and notifications
 
 The issue detail view is split in two: the existing issue content on the left
@@ -181,7 +196,7 @@ throw at import time, so `next build` works without a live database.
 | Table | Purpose |
 | --- | --- |
 | `projects` | Workspace projects with a unique short key |
-| `issues` | Bug reports, canvas state, telemetry and CDN asset URLs |
+| `issues` | Bug reports, canvas state, telemetry, CDN asset URLs and board order |
 | `issue_reconsider_notes` | Developer/QA conversation for the Reconsider loop |
 | `issue_supplementary_assets` | Clipboard-pasted secondary assets |
 | `issue_comments` | Chronological issue conversation comments |

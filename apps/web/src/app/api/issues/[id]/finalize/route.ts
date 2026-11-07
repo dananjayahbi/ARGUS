@@ -112,21 +112,29 @@ async function handlePUT(
 
   try {
     const result = await query<FinalizedIssueRow>(
-      `UPDATE issues
+      `UPDATE issues AS target
           SET title = $2,
               description = $3,
               priority = $4,
               annotated_image_url = $5,
               canvas_state = $6::jsonb,
               audio_note_url = $7,
-              raw_image_url = COALESCE($8, raw_image_url),
+              raw_image_url = COALESCE($8, target.raw_image_url),
               status = 'pending',
+              board_order = COALESCE(
+                (SELECT MAX(board_order) + 1024
+                   FROM issues
+                  WHERE project_id = target.project_id
+                    AND status = 'pending'
+                    AND id <> target.id),
+                1024
+              ),
               ephemeral_token = NULL,
               token_expires_at = NULL,
               updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'draft'
-        RETURNING id, status`,
+        WHERE target.id = $1
+          AND target.status = 'draft'
+        RETURNING target.id, target.status`,
       [
         id,
         payload.title,

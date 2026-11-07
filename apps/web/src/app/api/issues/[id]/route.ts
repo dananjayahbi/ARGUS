@@ -161,6 +161,8 @@ interface MutableIssueRow extends QueryResultRow {
   status: string;
   report_type: string;
   updated_at: Date;
+  created_at: Date;
+  board_order: number;
 }
 
 async function handlePATCH(
@@ -216,18 +218,38 @@ async function handlePATCH(
   }
 
   const result = await query<MutableIssueRow>(
-    `UPDATE issues
+    `UPDATE issues AS target
         SET title = $2,
             description = $3,
             priority = $4,
-            status = $5,
+            status = $5::text,
             report_type = $6,
             raw_image_url = $7,
             annotated_image_url = $8,
             audio_note_url = $9,
+            board_order = CASE
+              WHEN target.status = $5::text THEN target.board_order
+              ELSE COALESCE(
+                (SELECT MAX(board_order) + 1024
+                   FROM issues
+                  WHERE project_id = target.project_id
+                    AND status = $5::text
+                    AND id <> target.id),
+                1024
+              )
+            END,
             updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, issue_number, title, description, priority, status, report_type, updated_at`,
+      WHERE target.id = $1
+      RETURNING target.id,
+                target.issue_number,
+                target.title,
+                target.description,
+                target.priority,
+                target.status,
+                target.report_type,
+                target.updated_at,
+                target.created_at,
+                target.board_order`,
     [
       id,
       payload.title ?? current.title,

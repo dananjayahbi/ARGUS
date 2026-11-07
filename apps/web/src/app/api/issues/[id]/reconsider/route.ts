@@ -69,11 +69,20 @@ async function handlePOST(
       ],
     );
 
-    const updateResult = await query(
-      `UPDATE issues
-          SET status = $2,
+    const updateResult = await query<{ board_order: number } & QueryResultRow>(
+      `UPDATE issues AS target
+          SET status = $2::text,
+              board_order = COALESCE(
+                (SELECT MAX(board_order) + 1024
+                   FROM issues
+                  WHERE project_id = target.project_id
+                    AND status = $2::text
+                    AND id <> target.id),
+                1024
+              ),
               updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1`,
+        WHERE target.id = $1
+        RETURNING target.board_order`,
       [id, currentStatus],
     );
 
@@ -85,6 +94,7 @@ async function handlePOST(
       {
         note_id: noteResult.rows[0].id,
         current_status: currentStatus,
+        board_order: updateResult.rows[0]?.board_order ?? null,
       },
       { status: 201 },
     );

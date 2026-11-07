@@ -23,6 +23,8 @@ interface IssueRow extends QueryResultRow {
   raw_image_url: string | null;
   annotated_image_url: string | null;
   updated_at: Date;
+  created_at: Date;
+  board_order: number;
 }
 
 interface SupplementaryRow extends QueryResultRow {
@@ -50,10 +52,10 @@ export default async function ProjectPage({
   }
 
   const issuesResult = await query<IssueRow>(
-    `SELECT id, issue_number, title, description, priority, status, report_type, raw_image_url, annotated_image_url, updated_at
+    `SELECT id, issue_number, title, description, priority, status, report_type, raw_image_url, annotated_image_url, updated_at, created_at, board_order
        FROM issues
       WHERE project_id = $1
-      ORDER BY priority DESC, created_at DESC`,
+      ORDER BY status, board_order, issue_number`,
     [project.id],
   );
 
@@ -91,6 +93,8 @@ export default async function ProjectPage({
     annotated_image_url: issue.annotated_image_url,
     supplementary_assets: supplementaryByIssue.get(issue.id) ?? [],
     updated_at: issue.updated_at.toISOString(),
+    created_at: issue.created_at.toISOString(),
+    board_order: issue.board_order,
   }));
 
   return (

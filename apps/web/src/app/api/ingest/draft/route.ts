@@ -94,9 +94,18 @@ async function handlePOST(request: Request) {
       `INSERT INTO issues (
          id, project_id, title, description, priority, status, report_type,
          raw_image_url, environment_info, console_logs, ephemeral_token,
-         token_expires_at
+         token_expires_at, board_order
        )
-       VALUES ($1, $2, $3, NULL, $4, 'draft', $5, $6, $7::jsonb, $8::jsonb, $9, $10)
+       VALUES (
+         $1, $2, $3, NULL, $4, 'draft', $5, $6, $7::jsonb, $8::jsonb, $9, $10,
+         COALESCE(
+           (SELECT MAX(board_order) + 1024
+              FROM issues
+             WHERE project_id = $2
+               AND status = 'draft'),
+           1024
+         )
+       )
        RETURNING id, issue_number`,
       [
         issueId,

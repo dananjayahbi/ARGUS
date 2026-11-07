@@ -1,13 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { DragEvent } from "react";
 
 import type { BoardIssue } from "@/lib/board-types";
+import {
+  DEFAULT_BOARD_FILTERS,
+  SORT_OPTIONS,
+  filterIssues,
+  sortIssues,
+  type BoardFilters,
+  type BoardSortMode,
+} from "@/lib/board-query";
 import type { IssueStatus } from "@/lib/db-types";
 import { priorityTier } from "@/lib/priority";
 
+import { BoardFilterPanel } from "./BoardFilterPanel";
 import { IssueDetailModal } from "./IssueDetailModal";
 import { IssueFormModal } from "./IssueFormModal";
 import { ProjectFormModal } from "./ProjectFormModal";
@@ -56,27 +65,109 @@ export function KanbanBoard({
   const [confirmDeleteProject, setConfirmDeleteProject] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<BoardFilters>(DEFAULT_BOARD_FILTERS);
+  const [sortModes, setSortModes] = useState<Record<IssueStatus, BoardSortMode>>(
+    {
+      draft: "manual",
+      pending: "manual",
+      working: "manual",
+      reconsider: "manual",
+      completed: "manual",
+    },
+  );
+  const [dropTarget, setDropTarget] = useState<{
+    issueId: string;
+    position: "before" | "after";
+  } | null>(null);
 
-  async function moveIssue(id: string, status: IssueStatus) {
+  const filteredIssues = useMemo(
+    () => filterIssues(issues, filters),
+    [issues, filters],
+  );
+
+  function setColumnSort(status: IssueStatus, mode: BoardSortMode) {
+    setSortModes((current) => ({ ...current, [status]: mode }));
+    setDropTarget(null);
+  }
+
+  function manualColumnList(status: IssueStatus, excludeId?: string) {
+    return sortIssues(
+      issues.filter(
+        (issue) => issue.status === status && issue.id !== excludeId,
+      ),
+      "manual",
+    );
+  }
+
+  async function persistMove(
+    id: string,
+    status: IssueStatus,
+    previousIssueId: string | null,
+    nextIssueId: string | null,
+  ) {
     if (status === "reconsider") {
       const issue = issues.find((item) => item.id === id) ?? null;
       setReconsiderIssue(issue ? { issue, mode: "developer" } : null);
       return;
     }
 
-    const previous = issues;
+    const previousState = issues;
+    const previousIssue = previousIssueId
+      ? issues.find((item) => item.id === previousIssueId) ?? null
+      : null;
+    const nextIssue = nextIssueId
+      ? issues.find((item) => item.id === nextIssueId) ?? null
+      : null;
+    const previousOrder = previousIssue
+      ? (previousIssue.board_order ?? previousIssue.issue_number * 1024)
+      : null;
+    const nextOrder = nextIssue
+      ? (nextIssue.board_order ?? nextIssue.issue_number * 1024)
+      : null;
+
+    let optimisticOrder: number;
+    if (previousOrder !== null && nextOrder !== null) {
+      optimisticOrder = (previousOrder + nextOrder) / 2;
+    } else if (previousOrder !== null) {
+      optimisticOrder = previousOrder + 1;
+    } else if (nextOrder !== null) {
+      optimisticOrder = nextOrder - 1;
+    } else {
+      const list = manualColumnList(status, id);
+      const last = list[list.length - 1];
+      optimisticOrder = last
+        ? (last.board_order ?? last.issue_number * 1024) + 1
+        : 1024;
+    }
+
+    const statusChanged =
+      issues.find((item) => item.id === id)?.status !== status;
+
     setIssues((current) =>
-      current.map((issue) =>
-        issue.id === id ? { ...issue, status } : issue,
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status,
+              board_order: optimisticOrder,
+              ...(statusChanged
+                ? { updated_at: new Date().toISOString() }
+                : {}),
+            }
+          : item,
       ),
     );
     setError(null);
 
     try {
-      const response = await fetch(`/api/issues/${id}/status`, {
+      const response = await fetch(`/api/issues/${id}/position`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status,
+          previous_issue_id: previousIssueId,
+          next_issue_id: nextIssueId,
+        }),
       });
       const body = (await response.json().catch(() => null)) as
         | { issue?: BoardIssue; error?: { message?: string } }
@@ -90,23 +181,82 @@ export function KanbanBoard({
 
       const updatedIssue = body.issue;
       setIssues((current) =>
-        current.map((issue) =>
-          issue.id === id
+        current.map((item) =>
+          item.id === id
             ? {
-                ...issue,
+                ...item,
                 ...updatedIssue,
                 updated_at: String(updatedIssue.updated_at),
+                created_at: updatedIssue.created_at
+                  ? String(updatedIssue.created_at)
+                  : item.created_at,
               }
-            : issue,
+            : item,
         ),
       );
     } catch (caught) {
-      setIssues(previous);
+      setIssues(previousState);
       setError(
         caught instanceof Error
           ? caught.message
           : "Unable to move the issue.",
       );
+    }
+  }
+
+  function handleColumnDrop(
+    event: DragEvent<HTMLDivElement>,
+    status: IssueStatus,
+  ) {
+    if (sortModes[status] !== "manual") {
+      return;
+    }
+
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain") || draggingId;
+    setDraggingId(null);
+    setDropTarget(null);
+    if (!id) {
+      return;
+    }
+
+    const list = manualColumnList(status, id);
+    const previous = list[list.length - 1] ?? null;
+    void persistMove(id, status, previous?.id ?? null, null);
+  }
+
+  function handleCardDrop(
+    event: DragEvent<HTMLElement>,
+    targetIssue: BoardIssue,
+    status: IssueStatus,
+    position: "before" | "after",
+  ) {
+    if (sortModes[status] !== "manual") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    const id = event.dataTransfer.getData("text/plain") || draggingId;
+    setDraggingId(null);
+    setDropTarget(null);
+
+    if (!id || id === targetIssue.id) {
+      return;
+    }
+
+    const list = manualColumnList(status, id);
+    const index = list.findIndex((item) => item.id === targetIssue.id);
+    if (index === -1) {
+      return;
+    }
+
+    if (position === "before") {
+      const previous = list[index - 1] ?? null;
+      void persistMove(id, status, previous?.id ?? null, targetIssue.id);
+    } else {
+      const next = list[index + 1] ?? null;
+      void persistMove(id, status, targetIssue.id, next?.id ?? null);
     }
   }
 
@@ -134,16 +284,6 @@ export function KanbanBoard({
     }
   }
 
-  function handleDrop(event: DragEvent<HTMLDivElement>, status: IssueStatus) {
-    event.preventDefault();
-    const id =
-      event.dataTransfer.getData("text/plain") || draggingId;
-    setDraggingId(null);
-    if (id) {
-      void moveIssue(id, status);
-    }
-  }
-
   return (
     <div className="w-full space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-line bg-paper p-4 shadow-sm">
@@ -155,8 +295,9 @@ export function KanbanBoard({
             {localProjectName}
           </h1>
           <p className="mt-1 text-xs text-muted">
-            {issues.length} issue{issues.length === 1 ? "" : "s"} · drag cards
-            between columns
+            {filteredIssues.length} of {issues.length} issue
+            {issues.length === 1 ? "" : "s"} shown · drag cards to reorder ·
+            double-click a card to open it
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -191,6 +332,14 @@ export function KanbanBoard({
           </button>
         </div>
       </div>
+
+      <BoardFilterPanel
+        filters={filters}
+        onChange={setFilters}
+        onClear={() => setFilters(DEFAULT_BOARD_FILTERS)}
+        resultCount={filteredIssues.length}
+        totalCount={issues.length}
+      />
 
       {confirmDeleteProject ? (
         <div className="rounded-md border border-bad/40 bg-bad/10 p-3">
@@ -272,16 +421,34 @@ export function KanbanBoard({
 
       <div className="flex w-full gap-4 overflow-x-auto pb-4">
         {COLUMNS.map((column) => {
-          const columnIssues = issues.filter(
-            (issue) => issue.status === column.status,
+          const sortMode = sortModes[column.status];
+          const manualMode = sortMode === "manual";
+          const columnIssues = sortIssues(
+            filteredIssues.filter(
+              (issue) => issue.status === column.status,
+            ),
+            sortMode,
           );
 
           return (
             <div
               key={column.status}
               data-status={column.status}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => handleDrop(event, column.status)}
+              onDragOver={(event) => {
+                if (manualMode) {
+                  event.preventDefault();
+                }
+              }}
+              onDrop={(event) => handleColumnDrop(event, column.status)}
+              onDragLeave={(event) => {
+                if (
+                  !event.currentTarget.contains(
+                    event.relatedTarget as Node | null,
+                  )
+                ) {
+                  setDropTarget(null);
+                }
+              }}
               className={`flex min-w-[220px] flex-1 flex-col rounded-2xl border ${column.accent} bg-paper/80 shadow-sm`}
             >
               <div className="flex items-center justify-between border-b border-line px-3 py-2">
@@ -291,6 +458,31 @@ export function KanbanBoard({
                 <span className="rounded-full bg-paper-2 px-2 py-0.5 text-[10px] text-muted">
                   {columnIssues.length}
                 </span>
+              </div>
+
+              <div className="border-b border-line px-2 py-1.5">
+                <select
+                  aria-label={`Sort ${column.label} column`}
+                  value={sortMode}
+                  onChange={(event) =>
+                    setColumnSort(
+                      column.status,
+                      event.target.value as BoardSortMode,
+                    )
+                  }
+                  className="w-full rounded border border-line bg-cream px-1.5 py-1 text-[10px] text-ink-soft outline-none focus:border-teal"
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {!manualMode ? (
+                  <p className="mt-1 text-[10px] leading-3 text-muted">
+                    Switch to Manual order to drag cards.
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex min-h-32 flex-1 flex-col gap-2 p-2">
@@ -306,21 +498,73 @@ export function KanbanBoard({
                       <article
                         key={issue.id}
                         data-issue-id={issue.id}
-                        draggable
+                        draggable={manualMode}
                         onDragStart={(event) => {
+                          if (!manualMode) {
+                            event.preventDefault();
+                            return;
+                          }
                           event.dataTransfer.setData(
                             "text/plain",
                             issue.id,
                           );
                           event.dataTransfer.effectAllowed = "move";
                           setDraggingId(issue.id);
+                          setDropTarget(null);
                         }}
-                        onDragEnd={() => setDraggingId(null)}
-                        className={`cursor-grab rounded-xl border p-3 shadow-sm transition hover:border-accent ${
+                        onDragEnd={() => {
+                          setDraggingId(null);
+                          setDropTarget(null);
+                        }}
+                        onDragOver={(event) => {
+                          if (!manualMode) {
+                            return;
+                          }
+                          event.preventDefault();
+                          event.stopPropagation();
+                          const rect =
+                            event.currentTarget.getBoundingClientRect();
+                          setDropTarget({
+                            issueId: issue.id,
+                            position:
+                              event.clientY < rect.top + rect.height / 2
+                                ? "before"
+                                : "after",
+                          });
+                        }}
+                        onDrop={(event) => {
+                          const rect =
+                            event.currentTarget.getBoundingClientRect();
+                          handleCardDrop(
+                            event,
+                            issue,
+                            column.status,
+                            event.clientY < rect.top + rect.height / 2
+                              ? "before"
+                              : "after",
+                          );
+                        }}
+                        onDoubleClick={(event) => {
+                          if (
+                            (event.target as HTMLElement).closest(
+                              "button, a",
+                            )
+                          ) {
+                            return;
+                          }
+                          setDetailIssueId(issue.id);
+                        }}
+                        className={`rounded-xl border p-3 shadow-sm transition ${
+                          manualMode ? "cursor-grab" : "cursor-default"
+                        } hover:border-accent ${
                           issue.status === "draft"
                             ? "border-dashed border-line-strong bg-cream/60 opacity-80"
                             : "border-line bg-paper"
-                        } ${draggingId === issue.id ? "opacity-50" : ""}`}
+                        } ${draggingId === issue.id ? "opacity-50" : ""} ${
+                          dropTarget?.issueId === issue.id
+                            ? "ring-2 ring-accent"
+                            : ""
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-[11px] text-muted">
@@ -506,7 +750,11 @@ export function KanbanBoard({
             setIssues((current) =>
               current.map((item) =>
                 item.id === issue.id
-                  ? { ...item, status: issue.status }
+                  ? {
+                      ...item,
+                      status: issue.status,
+                      board_order: issue.board_order ?? item.board_order,
+                    }
                   : item,
               ),
             );

@@ -46,7 +46,10 @@ describe("POST /api/issues/[id]/reconsider", () => {
     sessionMock.mockResolvedValue(true);
     queryMock
       .mockResolvedValueOnce({ rows: [{ id: "note-1" }], rowCount: 1 } as never)
-      .mockResolvedValueOnce({ rows: [], rowCount: 1 } as never);
+      .mockResolvedValueOnce({
+        rows: [{ board_order: 6000 }],
+        rowCount: 1,
+      } as never);
 
     const response = await POST(
       request({ author_role: "developer", note: "Cannot reproduce" }),
@@ -57,6 +60,7 @@ describe("POST /api/issues/[id]/reconsider", () => {
     await expect(response.json()).resolves.toEqual({
       note_id: "note-1",
       current_status: "reconsider",
+      board_order: 6000,
     });
 
     const insertCall = queryMock.mock.calls[0] as [string, unknown[]];
@@ -73,7 +77,10 @@ describe("POST /api/issues/[id]/reconsider", () => {
     sessionMock.mockResolvedValue(true);
     queryMock
       .mockResolvedValueOnce({ rows: [{ id: "note-2" }], rowCount: 1 } as never)
-      .mockResolvedValueOnce({ rows: [], rowCount: 1 } as never);
+      .mockResolvedValueOnce({
+        rows: [{ board_order: 7000 }],
+        rowCount: 1,
+      } as never);
 
     const response = await POST(
       request({ author_role: "qa", note: "Added logs" }),
@@ -84,6 +91,7 @@ describe("POST /api/issues/[id]/reconsider", () => {
     await expect(response.json()).resolves.toEqual({
       note_id: "note-2",
       current_status: "working",
+      board_order: 7000,
     });
   });
 
