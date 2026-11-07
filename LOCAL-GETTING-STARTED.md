@@ -51,12 +51,15 @@ a vector annotation, and a description explaining what to try next.
 
 Click **Details** on any card and you'll see:
 
-- The **raw and annotated screenshots** side by side, with a toggle between them
-- The **read-only vector canvas** — the exact pen strokes you (or I) drew,
-  replayed over the screenshot
-- **Diagnostics** — the page URL, viewport size, and any console or network
-  errors that were captured at the time
+- The **screenshot** with a **Raw / Annotated** toggle; click the image to
+  open a full-viewport preview where the mouse wheel zooms, holding **Space**
+  and dragging pans, and **Esc** closes it
+- **Diagnostics** — the viewport size, environment details, and any console or
+  network errors that were captured at the time
+- **Supplementary images** — every additional attachment, each clickable for
+  the same full-viewport preview
 - The **voice note player**, when one was recorded
+- **Captured pages** at the bottom — every URL the captures came from
 - The **Reconsider audit trail** — every developer and QA note, in order
 
 ## Your first-use tour (all in the browser)
