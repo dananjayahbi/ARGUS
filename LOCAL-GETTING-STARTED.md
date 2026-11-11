@@ -27,8 +27,8 @@ Open your browser and go to **http://localhost:13130/login**, then sign in.
 
 You have two accounts:
 
-- **QA account** — email qa@argus.local, password qa123
-- **Developer account** — email dev@argus.local, password dev123
+- **QA account** — username `qa` (or `qa@argus.local`), password `qa123`
+- **Developer account** — username `dev` (or `dev@argus.local`), password `dev123`
 
 You will land on the dashboard. The project switcher at the top should already
 show **ARGUS (ARG)**. If it doesn't, pick it from the dropdown.

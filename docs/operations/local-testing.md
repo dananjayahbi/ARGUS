@@ -143,8 +143,8 @@ A 401 means the token is wrong — compare `apps\cdn\.env` and
 Open the browser:
 
 1. **Login** — `http://localhost:13130/login`
-   - QA: `qa@argus.local` / `qa123`
-   - Developer: `dev@argus.local` / `dev123`
+   - QA: `qa` / `qa123` (or `qa@argus.local` / `qa123`)
+   - Developer: `dev` / `dev123` (or `dev@argus.local` / `dev123`)
 2. You land on **Dashboard**. Pick project **ARGUS (ARG)** in the project
    switcher if it isn't auto-selected.
 3. **Kanban** shows 5 columns: Draft, Pending, Working, Reconsider, Completed.
@@ -207,7 +207,7 @@ Via API, the reconsider flow is:
 ```powershell
 # login cookie (copy $cookie from the login response Set-Cookie header)
 $login = Invoke-WebRequest "$web/api/auth/login" -Method Post -ContentType "application/json" `
-  -Body '{"email":"dev@argus.local","password":"dev123"}' -SessionVariable s
+  -Body '{"username":"dev","password":"dev123"}' -SessionVariable s
 $issueId = $draft.issue_id
 Invoke-RestMethod "$web/api/issues/$issueId/reconsider" -Method Post -WebSession $s `
   -ContentType "application/json" -Body '{"author_role":"developer","note":"Cannot reproduce"}'

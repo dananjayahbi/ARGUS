@@ -75,16 +75,23 @@ async function seedUsers(): Promise<void> {
 }
 
 export async function authenticate(
-  email: string,
+  identifier: string,
   password: string,
 ): Promise<UserRow | null> {
   await ensureSeedUsers();
 
+  const normalized = identifier.trim().toLowerCase();
   const result = await query<UserRow>(
-    "SELECT id, email, password_hash, role FROM users WHERE email = $1",
-    [email.trim().toLowerCase()],
+    `SELECT id, email, password_hash, role
+     FROM users
+     WHERE lower(email) = $1 OR lower(split_part(email, '@', 1)) = $1
+     ORDER BY (lower(email) = $1) DESC
+     LIMIT 2`,
+    [normalized],
   );
-  const user = result.rows[0];
+  // A short username that matches more than one account is ambiguous and must
+  // not sign in as an arbitrary user.
+  const user = result.rowCount === 1 ? result.rows[0] : undefined;
   if (!user) {
     return null;
   }

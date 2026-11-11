@@ -6,7 +6,7 @@ const inputClass =
   "w-full rounded-md border border-line-strong bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-teal";
 
 export function LoginForm({ next }: { next: string }) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -20,7 +20,7 @@ export function LoginForm({ next }: { next: string }) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username: identifier, password }),
       });
       const body = (await response.json().catch(() => null)) as
         | { error?: { message?: string } }
@@ -46,14 +46,14 @@ export function LoginForm({ next }: { next: string }) {
       className="space-y-4 rounded-2xl border border-line bg-paper p-6 shadow-[0_22px_54px_rgba(23,49,58,0.10)]"
     >
       <label className="block space-y-1 text-xs text-muted">
-        <span>Email</span>
+        <span>Username or email</span>
         <input
-          type="email"
+          type="text"
           autoFocus
           required
           autoComplete="username"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
           className={inputClass}
         />
       </label>

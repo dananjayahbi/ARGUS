@@ -105,9 +105,9 @@ The web app runs at `http://localhost:3000`, the CDN at
 | `CDN_AUTH_TOKEN` | yes | yes | Server-side CDN upload token used by `/api/uploads` (≥32) | `cdn-token-…` |
 | `CDN_BASE_URL` | yes | no | Public HTTPS CDN origin, no trailing slash | `https://cdn.argus.example.com` |
 | `SESSION_SECRET` | yes | yes | HS256 session JWT signing key (≥32) | `session-secret-…` |
-| `QA_EMAIL` | yes | no | Initial QA account email | `qa@argus.local` |
+| `QA_EMAIL` | yes | no | QA account email; login also accepts its local part (`qa`) | `qa@argus.local` |
 | `QA_PASSWORD` | yes | yes | QA password (≥5) | `qa123` |
-| `DEVELOPER_EMAIL` | yes | no | Initial developer email | `dev@argus.local` |
+| `DEVELOPER_EMAIL` | yes | no | Developer email; login also accepts its local part (`dev`) | `dev@argus.local` |
 | `DEVELOPER_PASSWORD` | yes | yes | Developer password (≥5) | `dev123` |
 | `NODE_ENV` | no | no | `production` on servers, `development` locally | `production` |
 | `SENTRY_DSN` | no | yes | Sentry DSN; empty disables Sentry | `https://…@sentry.io/…` |
@@ -116,9 +116,9 @@ The web app runs at `http://localhost:3000`, the CDN at
 | `SENTRY_TRACES_SAMPLE_RATE` | no | no | Trace sample rate, default `0` | `0` |
 | `TEST_DATABASE_URL` | CI only | yes | Integration test database | `postgresql://…/argus_test` |
 
-`QA_PASSWORD` / `DEVELOPER_PASSWORD` are applied on startup: if the stored
-Argon2id hash no longer matches the configured value, the existing account's
-password is updated.
+`QA_PASSWORD` / `DEVELOPER_PASSWORD` are applied on the first login after the
+process starts: if the stored Argon2id hash no longer matches the configured
+value, the existing account's password is updated.
 
 ### CDN (`apps/cdn/.env`, production `/etc/argus/cdn.env`)
 

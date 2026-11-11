@@ -15,10 +15,16 @@ import { authenticate } from "@/lib/users";
 
 export const runtime = "nodejs";
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+const loginSchema = z
+  .object({
+    email: z.string().trim().min(1).optional(),
+    username: z.string().trim().min(1).optional(),
+    password: z.string().min(1),
+  })
+  .refine((value) => Boolean(value.email || value.username), {
+    message: "A username or email is required.",
+    path: ["username"],
+  });
 
 async function handlePOST(request: Request) {
   let body: unknown;
@@ -36,9 +42,10 @@ async function handlePOST(request: Request) {
     );
   }
 
-  const user = await authenticate(parsed.data.email, parsed.data.password);
+  const identifier = parsed.data.username ?? parsed.data.email ?? "";
+  const user = await authenticate(identifier, parsed.data.password);
   if (!user) {
-    return jsonError("UNAUTHORIZED", "Invalid email or password.");
+    return jsonError("UNAUTHORIZED", "Invalid username or password.");
   }
 
   const sessionId = randomUUID();

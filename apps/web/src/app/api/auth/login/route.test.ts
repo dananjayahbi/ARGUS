@@ -63,6 +63,31 @@ describe("POST /api/auth/login", () => {
     expect(cookie).not.toContain("Secure");
   });
 
+  it("accepts a short username instead of a full email", async () => {
+    authenticateMock.mockResolvedValue({
+      id: "22222222-2222-4222-8222-222222222222",
+      email: "qa@argus.local",
+      role: "qa",
+      password_hash: "argon2-hash",
+    });
+    queryMock.mockResolvedValue({
+      rows: [],
+      rowCount: 1,
+    } as never);
+
+    const response = await POST(request({ username: "qa", password: "qa123" }));
+
+    expect(response.status).toBe(200);
+    expect(authenticateMock).toHaveBeenCalledWith("qa", "qa123");
+  });
+
+  it("rejects credentials without a username or email", async () => {
+    const response = await POST(request({ password: "qa123" }));
+
+    expect(response.status).toBe(422);
+    expect(authenticateMock).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid credentials without creating a session", async () => {
     authenticateMock.mockResolvedValue(null);
 
